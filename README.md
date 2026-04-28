@@ -11,4 +11,5 @@ A slightly more user-friendly Excel LAMBDA function editor compared to the "Name
 
 # Notes
 
-Existing LAMBDA names in the workbook are preserved.
+- Existing LAMBDA names in the workbook are preserved.
+- You may have to drag and enlarge the automatically-created UserForm1 in the VBA editor.
