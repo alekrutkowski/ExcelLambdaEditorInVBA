@@ -2,7 +2,7 @@
 
 A slightly more user-friendly Excel LAMBDA function editor compared to the "Name Manager".
 
-# Installation:
+# Installation
 
 1. Delete the previous `frmLambdaEditor`, `modLambdaEditor` and `modLambdaStore` VBA modules if they exist.
 2. Import `modLambdaEditorInstaller.bas`.
