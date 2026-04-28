@@ -105,7 +105,8 @@ Private Function BuildLambdaEditorForm(ByVal vbProj As Object) As String
     AddLabel frm, "lblTest", "Test formula", 220, 406, 100, 18
     AddTextBox frm, "txtTestFormula", 220, 426, 395, 22, False, False
     AddButton frm, "cmdValidate", "Validate", 624, 424, 80, 24
-    AddButton frm, "cmdTest", "Test", 710, 424, 64, 24
+    AddButton frm, "cmdMinify", "Minify", 710, 424, 64, 24
+    AddButton frm, "cmdTest", "Test", 780, 424, 64, 24
 
     mInstallStep = "Adding result controls"
     AddLabel frm, "lblResult", "Result", 220, 458, 100, 18
@@ -459,6 +460,382 @@ Private Function Code_modLambdaStore() As String
     s = s & "" & vbCrLf
     s = s & "    FormatLambdaFormula = t" & vbCrLf
     s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Public Function MinifyLambdaDefinition(ByVal formulaText As String, Optional ByVal shortenNames As Boolean = True) As String" & vbCrLf
+    s = s & "    Dim s As String" & vbCrLf
+    s = s & "    Dim binders As Object" & vbCrLf
+    s = s & "    Dim allIds As Object" & vbCrLf
+    s = s & "    Dim mapping As Object" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    s = CleanFormulaText(formulaText)" & vbCrLf
+    s = s & "    s = StripWhitespaceOutsideStrings(s)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If shortenNames Then" & vbCrLf
+    s = s & "        Set binders = CreateObject(""Scripting.Dictionary"")" & vbCrLf
+    s = s & "        Set allIds = CreateObject(""Scripting.Dictionary"")" & vbCrLf
+    s = s & "        CollectIdentifierTokens s, allIds" & vbCrLf
+    s = s & "        CollectLambdaAndLetBinders s, binders" & vbCrLf
+    s = s & "        Set mapping = BuildShortNameMap(binders, allIds)" & vbCrLf
+    s = s & "        s = RenameFormulaIdentifiers(s, mapping)" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    MinifyLambdaDefinition = s" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function StripWhitespaceOutsideStrings(ByVal s As String) As String" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim ch As String" & vbCrLf
+    s = s & "    Dim out As String" & vbCrLf
+    s = s & "    Dim inString As Boolean" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For i = 1 To Len(s)" & vbCrLf
+    s = s & "        ch = Mid$(s, i, 1)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        If ch = Chr$(34) Then" & vbCrLf
+    s = s & "            out = out & ch" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "            If inString And i < Len(s) And Mid$(s, i + 1, 1) = Chr$(34) Then" & vbCrLf
+    s = s & "                i = i + 1" & vbCrLf
+    s = s & "                out = out & Chr$(34)" & vbCrLf
+    s = s & "            Else" & vbCrLf
+    s = s & "                inString = Not inString" & vbCrLf
+    s = s & "            End If" & vbCrLf
+    s = s & "        ElseIf inString Then" & vbCrLf
+    s = s & "            out = out & ch" & vbCrLf
+    s = s & "        ElseIf Not IsFormulaWhitespace(ch) Then" & vbCrLf
+    s = s & "            out = out & ch" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Next i" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    StripWhitespaceOutsideStrings = out" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function IsFormulaWhitespace(ByVal ch As String) As Boolean" & vbCrLf
+    s = s & "    IsFormulaWhitespace = ch = "" "" Or ch = vbTab Or ch = vbCr Or ch = vbLf" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub CollectIdentifierTokens(ByVal s As String, ByVal ids As Object)" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim token As String" & vbCrLf
+    s = s & "    Dim ch As String" & vbCrLf
+    s = s & "    Dim inString As Boolean" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    i = 1" & vbCrLf
+    s = s & "    Do While i <= Len(s)" & vbCrLf
+    s = s & "        ch = Mid$(s, i, 1)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        If ch = Chr$(34) Then" & vbCrLf
+    s = s & "            inString = Not inString" & vbCrLf
+    s = s & "            i = i + 1" & vbCrLf
+    s = s & "        ElseIf Not inString And IsNameStartChar(ch) Then" & vbCrLf
+    s = s & "            token = ReadIdentifierToken(s, i)" & vbCrLf
+    s = s & "            If Not ids.Exists(UCase$(token)) Then ids.Add UCase$(token), token" & vbCrLf
+    s = s & "            i = i + Len(token)" & vbCrLf
+    s = s & "        Else" & vbCrLf
+    s = s & "            i = i + 1" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Loop" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub CollectLambdaAndLetBinders(ByVal s As String, ByVal binders As Object)" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim nameText As String" & vbCrLf
+    s = s & "    Dim openPos As Long" & vbCrLf
+    s = s & "    Dim closePos As Long" & vbCrLf
+    s = s & "    Dim args As Collection" & vbCrLf
+    s = s & "    Dim j As Long" & vbCrLf
+    s = s & "    Dim argText As String" & vbCrLf
+    s = s & "    Dim inString As Boolean" & vbCrLf
+    s = s & "    Dim ch As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    i = 1" & vbCrLf
+    s = s & "    Do While i <= Len(s)" & vbCrLf
+    s = s & "        ch = Mid$(s, i, 1)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        If ch = Chr$(34) Then" & vbCrLf
+    s = s & "            inString = Not inString" & vbCrLf
+    s = s & "            i = i + 1" & vbCrLf
+    s = s & "        ElseIf Not inString And IsNameStartChar(ch) Then" & vbCrLf
+    s = s & "            nameText = ReadIdentifierToken(s, i)" & vbCrLf
+    s = s & "            openPos = i + Len(nameText)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "            If openPos <= Len(s) And Mid$(s, openPos, 1) = ""("" Then" & vbCrLf
+    s = s & "                If StrComp(nameText, ""LAMBDA"", vbTextCompare) = 0 Or StrComp(nameText, ""LET"", vbTextCompare) = 0 Then" & vbCrLf
+    s = s & "                    closePos = FindMatchingParen(s, openPos)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "                    If closePos > openPos Then" & vbCrLf
+    s = s & "                        Set args = SplitTopLevelArgs(Mid$(s, openPos + 1, closePos - openPos - 1))" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "                        If StrComp(nameText, ""LAMBDA"", vbTextCompare) = 0 Then" & vbCrLf
+    s = s & "                            For j = 1 To args.Count - 1" & vbCrLf
+    s = s & "                                argText = CStr(args(j))" & vbCrLf
+    s = s & "                                If IsValidLambdaName(argText) Then AddBinder binders, argText" & vbCrLf
+    s = s & "                            Next j" & vbCrLf
+    s = s & "                        ElseIf StrComp(nameText, ""LET"", vbTextCompare) = 0 Then" & vbCrLf
+    s = s & "                            For j = 1 To args.Count - 1 Step 2" & vbCrLf
+    s = s & "                                argText = CStr(args(j))" & vbCrLf
+    s = s & "                                If IsValidLambdaName(argText) Then AddBinder binders, argText" & vbCrLf
+    s = s & "                            Next j" & vbCrLf
+    s = s & "                        End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "                        CollectLambdaAndLetBinders Mid$(s, openPos + 1, closePos - openPos - 1), binders" & vbCrLf
+    s = s & "                        i = closePos + 1" & vbCrLf
+    s = s & "                    Else" & vbCrLf
+    s = s & "                        i = openPos + 1" & vbCrLf
+    s = s & "                    End If" & vbCrLf
+    s = s & "                Else" & vbCrLf
+    s = s & "                    i = openPos + 1" & vbCrLf
+    s = s & "                End If" & vbCrLf
+    s = s & "            Else" & vbCrLf
+    s = s & "                i = i + Len(nameText)" & vbCrLf
+    s = s & "            End If" & vbCrLf
+    s = s & "        Else" & vbCrLf
+    s = s & "            i = i + 1" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Loop" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub AddBinder(ByVal binders As Object, ByVal nameText As String)" & vbCrLf
+    s = s & "    Dim key As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    key = UCase$(nameText)" & vbCrLf
+    s = s & "    If Not binders.Exists(key) Then binders.Add key, nameText" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function BuildShortNameMap(ByVal binders As Object, ByVal allIds As Object) As Object" & vbCrLf
+    s = s & "    Dim map As Object" & vbCrLf
+    s = s & "    Dim used As Object" & vbCrLf
+    s = s & "    Dim k As Variant" & vbCrLf
+    s = s & "    Dim oldName As String" & vbCrLf
+    s = s & "    Dim newName As String" & vbCrLf
+    s = s & "    Dim n As Long" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    Set map = CreateObject(""Scripting.Dictionary"")" & vbCrLf
+    s = s & "    Set used = CreateObject(""Scripting.Dictionary"")" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For Each k In allIds.Keys" & vbCrLf
+    s = s & "        used(k) = True" & vbCrLf
+    s = s & "    Next k" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    n = 1" & vbCrLf
+    s = s & "    For Each k In binders.Keys" & vbCrLf
+    s = s & "        oldName = CStr(binders(k))" & vbCrLf
+    s = s & "        newName = NextSafeShortName(n, used)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        If Len(newName) < Len(oldName) Then" & vbCrLf
+    s = s & "            map(UCase$(oldName)) = newName" & vbCrLf
+    s = s & "            used(UCase$(newName)) = True" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Next k" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    Set BuildShortNameMap = map" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function NextSafeShortName(ByRef n As Long, ByVal used As Object) As String" & vbCrLf
+    s = s & "    Dim candidate As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    Do" & vbCrLf
+    s = s & "        candidate = ""_"" & Base26Name(n)" & vbCrLf
+    s = s & "        n = n + 1" & vbCrLf
+    s = s & "    Loop While used.Exists(UCase$(candidate)) Or LooksLikeExcelReference(candidate)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    NextSafeShortName = candidate" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function Base26Name(ByVal n As Long) As String" & vbCrLf
+    s = s & "    Dim x As Long" & vbCrLf
+    s = s & "    Dim remVal As Long" & vbCrLf
+    s = s & "    Dim out As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    x = n" & vbCrLf
+    s = s & "    Do" & vbCrLf
+    s = s & "        remVal = (x - 1) Mod 26" & vbCrLf
+    s = s & "        out = Chr$(97 + remVal) & out" & vbCrLf
+    s = s & "        x = (x - 1) \ 26" & vbCrLf
+    s = s & "    Loop While x > 0" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    Base26Name = out" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function RenameFormulaIdentifiers(ByVal s As String, ByVal mapping As Object) As String" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim ch As String" & vbCrLf
+    s = s & "    Dim token As String" & vbCrLf
+    s = s & "    Dim out As String" & vbCrLf
+    s = s & "    Dim inString As Boolean" & vbCrLf
+    s = s & "    Dim key As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    i = 1" & vbCrLf
+    s = s & "    Do While i <= Len(s)" & vbCrLf
+    s = s & "        ch = Mid$(s, i, 1)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        If ch = Chr$(34) Then" & vbCrLf
+    s = s & "            out = out & ch" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "            If inString And i < Len(s) And Mid$(s, i + 1, 1) = Chr$(34) Then" & vbCrLf
+    s = s & "                i = i + 1" & vbCrLf
+    s = s & "                out = out & Chr$(34)" & vbCrLf
+    s = s & "            Else" & vbCrLf
+    s = s & "                inString = Not inString" & vbCrLf
+    s = s & "            End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "            i = i + 1" & vbCrLf
+    s = s & "        ElseIf Not inString And IsNameStartChar(ch) Then" & vbCrLf
+    s = s & "            token = ReadIdentifierToken(s, i)" & vbCrLf
+    s = s & "            key = UCase$(token)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "            If mapping.Exists(key) Then" & vbCrLf
+    s = s & "                out = out & CStr(mapping(key))" & vbCrLf
+    s = s & "            Else" & vbCrLf
+    s = s & "                out = out & token" & vbCrLf
+    s = s & "            End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "            i = i + Len(token)" & vbCrLf
+    s = s & "        Else" & vbCrLf
+    s = s & "            out = out & ch" & vbCrLf
+    s = s & "            i = i + 1" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Loop" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    RenameFormulaIdentifiers = out" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function SplitTopLevelArgs(ByVal s As String) As Collection" & vbCrLf
+    s = s & "    Dim args As New Collection" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim startPos As Long" & vbCrLf
+    s = s & "    Dim depth As Long" & vbCrLf
+    s = s & "    Dim ch As String" & vbCrLf
+    s = s & "    Dim inString As Boolean" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    startPos = 1" & vbCrLf
+    s = s & "    For i = 1 To Len(s)" & vbCrLf
+    s = s & "        ch = Mid$(s, i, 1)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        If ch = Chr$(34) Then" & vbCrLf
+    s = s & "            If inString And i < Len(s) And Mid$(s, i + 1, 1) = Chr$(34) Then" & vbCrLf
+    s = s & "                i = i + 1" & vbCrLf
+    s = s & "            Else" & vbCrLf
+    s = s & "                inString = Not inString" & vbCrLf
+    s = s & "            End If" & vbCrLf
+    s = s & "        ElseIf Not inString Then" & vbCrLf
+    s = s & "            If ch = ""("" Then" & vbCrLf
+    s = s & "                depth = depth + 1" & vbCrLf
+    s = s & "            ElseIf ch = "")"" Then" & vbCrLf
+    s = s & "                If depth > 0 Then depth = depth - 1" & vbCrLf
+    s = s & "            ElseIf ch = "","" And depth = 0 Then" & vbCrLf
+    s = s & "                args.Add Mid$(s, startPos, i - startPos)" & vbCrLf
+    s = s & "                startPos = i + 1" & vbCrLf
+    s = s & "            End If" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Next i" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    args.Add Mid$(s, startPos)" & vbCrLf
+    s = s & "    Set SplitTopLevelArgs = args" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function FindMatchingParen(ByVal s As String, ByVal openPos As Long) As Long" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim depth As Long" & vbCrLf
+    s = s & "    Dim ch As String" & vbCrLf
+    s = s & "    Dim inString As Boolean" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For i = openPos To Len(s)" & vbCrLf
+    s = s & "        ch = Mid$(s, i, 1)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        If ch = Chr$(34) Then" & vbCrLf
+    s = s & "            If inString And i < Len(s) And Mid$(s, i + 1, 1) = Chr$(34) Then" & vbCrLf
+    s = s & "                i = i + 1" & vbCrLf
+    s = s & "            Else" & vbCrLf
+    s = s & "                inString = Not inString" & vbCrLf
+    s = s & "            End If" & vbCrLf
+    s = s & "        ElseIf Not inString Then" & vbCrLf
+    s = s & "            If ch = ""("" Then" & vbCrLf
+    s = s & "                depth = depth + 1" & vbCrLf
+    s = s & "            ElseIf ch = "")"" Then" & vbCrLf
+    s = s & "                depth = depth - 1" & vbCrLf
+    s = s & "                If depth = 0 Then" & vbCrLf
+    s = s & "                    FindMatchingParen = i" & vbCrLf
+    s = s & "                    Exit Function" & vbCrLf
+    s = s & "                End If" & vbCrLf
+    s = s & "            End If" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Next i" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    FindMatchingParen = 0" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function ReadIdentifierToken(ByVal s As String, ByVal startPos As Long) As String" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim ch As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    i = startPos" & vbCrLf
+    s = s & "    Do While i <= Len(s)" & vbCrLf
+    s = s & "        ch = Mid$(s, i, 1)" & vbCrLf
+    s = s & "        If IsNameBodyChar(ch) Then" & vbCrLf
+    s = s & "            i = i + 1" & vbCrLf
+    s = s & "        Else" & vbCrLf
+    s = s & "            Exit Do" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Loop" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    ReadIdentifierToken = Mid$(s, startPos, i - startPos)" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function IsNameStartChar(ByVal ch As String) As Boolean" & vbCrLf
+    s = s & "    If Len(ch) <> 1 Then Exit Function" & vbCrLf
+    s = s & "    IsNameStartChar = (ch Like ""[A-Za-z_\\]"")" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function IsNameBodyChar(ByVal ch As String) As Boolean" & vbCrLf
+    s = s & "    If Len(ch) <> 1 Then Exit Function" & vbCrLf
+    s = s & "    IsNameBodyChar = (ch Like ""[A-Za-z0-9_.\\]"")" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function IsValidLambdaName(ByVal s As String) As Boolean" & vbCrLf
+    s = s & "    s = Trim$(s)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If Len(s) = 0 Then Exit Function" & vbCrLf
+    s = s & "    If Not IsNameStartChar(Left$(s, 1)) Then Exit Function" & vbCrLf
+    s = s & "    If LooksLikeExcelReference(s) Then Exit Function" & vbCrLf
+    s = s & "    If InStr(1, s, ""."", vbBinaryCompare) > 0 Then Exit Function" & vbCrLf
+    s = s & "    If InStr(1, s, ""!"", vbBinaryCompare) > 0 Then Exit Function" & vbCrLf
+    s = s & "    If InStr(1, s, ""["", vbBinaryCompare) > 0 Then Exit Function" & vbCrLf
+    s = s & "    If InStr(1, s, ""]"", vbBinaryCompare) > 0 Then Exit Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    IsValidLambdaName = True" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function LooksLikeExcelReference(ByVal s As String) As Boolean" & vbCrLf
+    s = s & "    Dim t As String" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim letters As String" & vbCrLf
+    s = s & "    Dim digits As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    t = UCase$(Replace(s, ""$"", """"))" & vbCrLf
+    s = s & "    If Len(t) = 0 Then Exit Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If t Like ""R[1-9]*C[1-9]*"" Then" & vbCrLf
+    s = s & "        LooksLikeExcelReference = True" & vbCrLf
+    s = s & "        Exit Function" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For i = 1 To Len(t)" & vbCrLf
+    s = s & "        If Mid$(t, i, 1) Like ""[A-Z]"" Then" & vbCrLf
+    s = s & "            letters = letters & Mid$(t, i, 1)" & vbCrLf
+    s = s & "        Else" & vbCrLf
+    s = s & "            Exit For" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Next i" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If Len(letters) > 0 And Len(letters) <= 3 Then" & vbCrLf
+    s = s & "        digits = Mid$(t, Len(letters) + 1)" & vbCrLf
+    s = s & "        If Len(digits) > 0 And digits Like ""[0-9]*"" Then" & vbCrLf
+    s = s & "            LooksLikeExcelReference = True" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "End Function" & vbCrLf
     Code_modLambdaStore = s
 End Function
 
@@ -676,6 +1053,21 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "    lblStatus.Caption = ""Test completed.""" & vbCrLf
     s = s & "End Sub" & vbCrLf
     s = s & "" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub cmdMinify_Click()" & vbCrLf
+    s = s & "    On Error GoTo Fail" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    txtFormula.Text = MinifyLambdaDefinition(txtFormula.Text, True)" & vbCrLf
+    s = s & "    txtFormula.SelStart = Len(txtFormula.Text)" & vbCrLf
+    s = s & "    mDirty = True" & vbCrLf
+    s = s & "    lblStatus.Caption = ""Minified formula. Review, test, then save.""" & vbCrLf
+    s = s & "    Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Fail:" & vbCrLf
+    s = s & "    lblStatus.Caption = Err.Description" & vbCrLf
+    s = s & "    MsgBox Err.Description, vbExclamation, ""Minify failed""" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
     s = s & "Private Sub cmdClose_Click()" & vbCrLf
     s = s & "    If ConfirmDiscardChanges Then Unload Me" & vbCrLf
     s = s & "End Sub" & vbCrLf
@@ -700,6 +1092,9 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "        KeyCode = 0" & vbCrLf
     s = s & "        txtFormula.Text = FormatLambdaFormula(txtFormula.Text)" & vbCrLf
     s = s & "        txtFormula.SelStart = Len(txtFormula.Text)" & vbCrLf
+    s = s & "    ElseIf Shift = 2 And KeyCode = vbKeyM Then" & vbCrLf
+    s = s & "        KeyCode = 0" & vbCrLf
+    s = s & "        cmdMinify_Click" & vbCrLf
     s = s & "    ElseIf KeyCode = vbKeyTab Then" & vbCrLf
     s = s & "        KeyCode = 0" & vbCrLf
     s = s & "        InsertAtCursor txtFormula, ""    """ & vbCrLf

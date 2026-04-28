@@ -202,3 +202,379 @@ Public Function FormatLambdaFormula(ByVal s As String) As String
 
     FormatLambdaFormula = t
 End Function
+
+
+Public Function MinifyLambdaDefinition(ByVal formulaText As String, Optional ByVal shortenNames As Boolean = True) As String
+    Dim s As String
+    Dim binders As Object
+    Dim allIds As Object
+    Dim mapping As Object
+
+    s = CleanFormulaText(formulaText)
+    s = StripWhitespaceOutsideStrings(s)
+
+    If shortenNames Then
+        Set binders = CreateObject("Scripting.Dictionary")
+        Set allIds = CreateObject("Scripting.Dictionary")
+        CollectIdentifierTokens s, allIds
+        CollectLambdaAndLetBinders s, binders
+        Set mapping = BuildShortNameMap(binders, allIds)
+        s = RenameFormulaIdentifiers(s, mapping)
+    End If
+
+    MinifyLambdaDefinition = s
+End Function
+
+Private Function StripWhitespaceOutsideStrings(ByVal s As String) As String
+    Dim i As Long
+    Dim ch As String
+    Dim out As String
+    Dim inString As Boolean
+
+    For i = 1 To Len(s)
+        ch = Mid$(s, i, 1)
+
+        If ch = Chr$(34) Then
+            out = out & ch
+
+            If inString And i < Len(s) And Mid$(s, i + 1, 1) = Chr$(34) Then
+                i = i + 1
+                out = out & Chr$(34)
+            Else
+                inString = Not inString
+            End If
+        ElseIf inString Then
+            out = out & ch
+        ElseIf Not IsFormulaWhitespace(ch) Then
+            out = out & ch
+        End If
+    Next i
+
+    StripWhitespaceOutsideStrings = out
+End Function
+
+Private Function IsFormulaWhitespace(ByVal ch As String) As Boolean
+    IsFormulaWhitespace = ch = " " Or ch = vbTab Or ch = vbCr Or ch = vbLf
+End Function
+
+Private Sub CollectIdentifierTokens(ByVal s As String, ByVal ids As Object)
+    Dim i As Long
+    Dim token As String
+    Dim ch As String
+    Dim inString As Boolean
+
+    i = 1
+    Do While i <= Len(s)
+        ch = Mid$(s, i, 1)
+
+        If ch = Chr$(34) Then
+            inString = Not inString
+            i = i + 1
+        ElseIf Not inString And IsNameStartChar(ch) Then
+            token = ReadIdentifierToken(s, i)
+            If Not ids.Exists(UCase$(token)) Then ids.Add UCase$(token), token
+            i = i + Len(token)
+        Else
+            i = i + 1
+        End If
+    Loop
+End Sub
+
+Private Sub CollectLambdaAndLetBinders(ByVal s As String, ByVal binders As Object)
+    Dim i As Long
+    Dim nameText As String
+    Dim openPos As Long
+    Dim closePos As Long
+    Dim args As Collection
+    Dim j As Long
+    Dim argText As String
+    Dim inString As Boolean
+    Dim ch As String
+
+    i = 1
+    Do While i <= Len(s)
+        ch = Mid$(s, i, 1)
+
+        If ch = Chr$(34) Then
+            inString = Not inString
+            i = i + 1
+        ElseIf Not inString And IsNameStartChar(ch) Then
+            nameText = ReadIdentifierToken(s, i)
+            openPos = i + Len(nameText)
+
+            If openPos <= Len(s) And Mid$(s, openPos, 1) = "(" Then
+                If StrComp(nameText, "LAMBDA", vbTextCompare) = 0 Or StrComp(nameText, "LET", vbTextCompare) = 0 Then
+                    closePos = FindMatchingParen(s, openPos)
+
+                    If closePos > openPos Then
+                        Set args = SplitTopLevelArgs(Mid$(s, openPos + 1, closePos - openPos - 1))
+
+                        If StrComp(nameText, "LAMBDA", vbTextCompare) = 0 Then
+                            For j = 1 To args.Count - 1
+                                argText = CStr(args(j))
+                                If IsValidLambdaName(argText) Then AddBinder binders, argText
+                            Next j
+                        ElseIf StrComp(nameText, "LET", vbTextCompare) = 0 Then
+                            For j = 1 To args.Count - 1 Step 2
+                                argText = CStr(args(j))
+                                If IsValidLambdaName(argText) Then AddBinder binders, argText
+                            Next j
+                        End If
+
+                        CollectLambdaAndLetBinders Mid$(s, openPos + 1, closePos - openPos - 1), binders
+                        i = closePos + 1
+                    Else
+                        i = openPos + 1
+                    End If
+                Else
+                    i = openPos + 1
+                End If
+            Else
+                i = i + Len(nameText)
+            End If
+        Else
+            i = i + 1
+        End If
+    Loop
+End Sub
+
+Private Sub AddBinder(ByVal binders As Object, ByVal nameText As String)
+    Dim key As String
+
+    key = UCase$(nameText)
+    If Not binders.Exists(key) Then binders.Add key, nameText
+End Sub
+
+Private Function BuildShortNameMap(ByVal binders As Object, ByVal allIds As Object) As Object
+    Dim map As Object
+    Dim used As Object
+    Dim k As Variant
+    Dim oldName As String
+    Dim newName As String
+    Dim n As Long
+
+    Set map = CreateObject("Scripting.Dictionary")
+    Set used = CreateObject("Scripting.Dictionary")
+
+    For Each k In allIds.Keys
+        used(k) = True
+    Next k
+
+    n = 1
+    For Each k In binders.Keys
+        oldName = CStr(binders(k))
+        newName = NextSafeShortName(n, used)
+
+        If Len(newName) < Len(oldName) Then
+            map(UCase$(oldName)) = newName
+            used(UCase$(newName)) = True
+        End If
+    Next k
+
+    Set BuildShortNameMap = map
+End Function
+
+Private Function NextSafeShortName(ByRef n As Long, ByVal used As Object) As String
+    Dim candidate As String
+
+    Do
+        candidate = "_" & Base26Name(n)
+        n = n + 1
+    Loop While used.Exists(UCase$(candidate)) Or LooksLikeExcelReference(candidate)
+
+    NextSafeShortName = candidate
+End Function
+
+Private Function Base26Name(ByVal n As Long) As String
+    Dim x As Long
+    Dim remVal As Long
+    Dim out As String
+
+    x = n
+    Do
+        remVal = (x - 1) Mod 26
+        out = Chr$(97 + remVal) & out
+        x = (x - 1) \ 26
+    Loop While x > 0
+
+    Base26Name = out
+End Function
+
+Private Function RenameFormulaIdentifiers(ByVal s As String, ByVal mapping As Object) As String
+    Dim i As Long
+    Dim ch As String
+    Dim token As String
+    Dim out As String
+    Dim inString As Boolean
+    Dim key As String
+
+    i = 1
+    Do While i <= Len(s)
+        ch = Mid$(s, i, 1)
+
+        If ch = Chr$(34) Then
+            out = out & ch
+
+            If inString And i < Len(s) And Mid$(s, i + 1, 1) = Chr$(34) Then
+                i = i + 1
+                out = out & Chr$(34)
+            Else
+                inString = Not inString
+            End If
+
+            i = i + 1
+        ElseIf Not inString And IsNameStartChar(ch) Then
+            token = ReadIdentifierToken(s, i)
+            key = UCase$(token)
+
+            If mapping.Exists(key) Then
+                out = out & CStr(mapping(key))
+            Else
+                out = out & token
+            End If
+
+            i = i + Len(token)
+        Else
+            out = out & ch
+            i = i + 1
+        End If
+    Loop
+
+    RenameFormulaIdentifiers = out
+End Function
+
+Private Function SplitTopLevelArgs(ByVal s As String) As Collection
+    Dim args As New Collection
+    Dim i As Long
+    Dim startPos As Long
+    Dim depth As Long
+    Dim ch As String
+    Dim inString As Boolean
+
+    startPos = 1
+    For i = 1 To Len(s)
+        ch = Mid$(s, i, 1)
+
+        If ch = Chr$(34) Then
+            If inString And i < Len(s) And Mid$(s, i + 1, 1) = Chr$(34) Then
+                i = i + 1
+            Else
+                inString = Not inString
+            End If
+        ElseIf Not inString Then
+            If ch = "(" Then
+                depth = depth + 1
+            ElseIf ch = ")" Then
+                If depth > 0 Then depth = depth - 1
+            ElseIf ch = "," And depth = 0 Then
+                args.Add Mid$(s, startPos, i - startPos)
+                startPos = i + 1
+            End If
+        End If
+    Next i
+
+    args.Add Mid$(s, startPos)
+    Set SplitTopLevelArgs = args
+End Function
+
+Private Function FindMatchingParen(ByVal s As String, ByVal openPos As Long) As Long
+    Dim i As Long
+    Dim depth As Long
+    Dim ch As String
+    Dim inString As Boolean
+
+    For i = openPos To Len(s)
+        ch = Mid$(s, i, 1)
+
+        If ch = Chr$(34) Then
+            If inString And i < Len(s) And Mid$(s, i + 1, 1) = Chr$(34) Then
+                i = i + 1
+            Else
+                inString = Not inString
+            End If
+        ElseIf Not inString Then
+            If ch = "(" Then
+                depth = depth + 1
+            ElseIf ch = ")" Then
+                depth = depth - 1
+                If depth = 0 Then
+                    FindMatchingParen = i
+                    Exit Function
+                End If
+            End If
+        End If
+    Next i
+
+    FindMatchingParen = 0
+End Function
+
+Private Function ReadIdentifierToken(ByVal s As String, ByVal startPos As Long) As String
+    Dim i As Long
+    Dim ch As String
+
+    i = startPos
+    Do While i <= Len(s)
+        ch = Mid$(s, i, 1)
+        If IsNameBodyChar(ch) Then
+            i = i + 1
+        Else
+            Exit Do
+        End If
+    Loop
+
+    ReadIdentifierToken = Mid$(s, startPos, i - startPos)
+End Function
+
+Private Function IsNameStartChar(ByVal ch As String) As Boolean
+    If Len(ch) <> 1 Then Exit Function
+    IsNameStartChar = (ch Like "[A-Za-z_\\]")
+End Function
+
+Private Function IsNameBodyChar(ByVal ch As String) As Boolean
+    If Len(ch) <> 1 Then Exit Function
+    IsNameBodyChar = (ch Like "[A-Za-z0-9_.\\]")
+End Function
+
+Private Function IsValidLambdaName(ByVal s As String) As Boolean
+    s = Trim$(s)
+
+    If Len(s) = 0 Then Exit Function
+    If Not IsNameStartChar(Left$(s, 1)) Then Exit Function
+    If LooksLikeExcelReference(s) Then Exit Function
+    If InStr(1, s, ".", vbBinaryCompare) > 0 Then Exit Function
+    If InStr(1, s, "!", vbBinaryCompare) > 0 Then Exit Function
+    If InStr(1, s, "[", vbBinaryCompare) > 0 Then Exit Function
+    If InStr(1, s, "]", vbBinaryCompare) > 0 Then Exit Function
+
+    IsValidLambdaName = True
+End Function
+
+Private Function LooksLikeExcelReference(ByVal s As String) As Boolean
+    Dim t As String
+    Dim i As Long
+    Dim letters As String
+    Dim digits As String
+
+    t = UCase$(Replace(s, "$", ""))
+    If Len(t) = 0 Then Exit Function
+
+    If t Like "R[1-9]*C[1-9]*" Then
+        LooksLikeExcelReference = True
+        Exit Function
+    End If
+
+    For i = 1 To Len(t)
+        If Mid$(t, i, 1) Like "[A-Z]" Then
+            letters = letters & Mid$(t, i, 1)
+        Else
+            Exit For
+        End If
+    Next i
+
+    If Len(letters) > 0 And Len(letters) <= 3 Then
+        digits = Mid$(t, Len(letters) + 1)
+        If Len(digits) > 0 And digits Like "[0-9]*" Then
+            LooksLikeExcelReference = True
+        End If
+    End If
+End Function

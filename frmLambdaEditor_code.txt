@@ -210,6 +210,21 @@ Private Sub cmdTest_Click()
     lblStatus.Caption = "Test completed."
 End Sub
 
+
+Private Sub cmdMinify_Click()
+    On Error GoTo Fail
+
+    txtFormula.Text = MinifyLambdaDefinition(txtFormula.Text, True)
+    txtFormula.SelStart = Len(txtFormula.Text)
+    mDirty = True
+    lblStatus.Caption = "Minified formula. Review, test, then save."
+    Exit Sub
+
+Fail:
+    lblStatus.Caption = Err.Description
+    MsgBox Err.Description, vbExclamation, "Minify failed"
+End Sub
+
 Private Sub cmdClose_Click()
     If ConfirmDiscardChanges Then Unload Me
 End Sub
@@ -234,6 +249,9 @@ Private Sub txtFormula_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shi
         KeyCode = 0
         txtFormula.Text = FormatLambdaFormula(txtFormula.Text)
         txtFormula.SelStart = Len(txtFormula.Text)
+    ElseIf Shift = 2 And KeyCode = vbKeyM Then
+        KeyCode = 0
+        cmdMinify_Click
     ElseIf KeyCode = vbKeyTab Then
         KeyCode = 0
         InsertAtCursor txtFormula, "    "
