@@ -9,6 +9,10 @@ A slightly more user-friendly Excel LAMBDA function editor compared to the "Name
 3. Run `InstallLambdaEditor` macro.
 4. Run `ShowLambdaEditor` macro.
 
+You should be able to see and use something like:
+<img width="2170" height="1440" alt="image" src="https://github.com/user-attachments/assets/41a326db-1483-4896-a136-a7d591d8ca63" />
+
+
 # Notes
 
 - Existing LAMBDA names in the workbook are preserved.
