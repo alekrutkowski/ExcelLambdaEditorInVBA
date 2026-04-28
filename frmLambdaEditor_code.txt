@@ -1,0 +1,256 @@
+Option Explicit
+
+Private mLoading As Boolean
+Private mDirty As Boolean
+Private mCurrentName As String
+
+Private Sub UserForm_Initialize()
+    Me.Caption = "LAMBDA Function Editor"
+    ConfigureEditor
+    RefreshList
+    ClearEditor
+End Sub
+
+Private Sub ConfigureEditor()
+    On Error Resume Next
+
+    txtFormula.Font.Name = "Consolas"
+    txtFormula.Font.Size = 10
+    txtFormula.MultiLine = True
+    txtFormula.EnterKeyBehavior = True
+    txtFormula.ScrollBars = fmScrollBarsBoth
+    txtFormula.WordWrap = False
+
+    txtComment.MultiLine = True
+    txtComment.ScrollBars = fmScrollBarsVertical
+
+    txtResult.Locked = True
+
+    On Error GoTo 0
+End Sub
+
+Private Sub RefreshList()
+    Dim names As Collection
+    Dim x As Variant
+
+    mLoading = True
+    lstNames.Clear
+
+    Set names = GetLambdaNames(ActiveWorkbook)
+
+    For Each x In names
+        lstNames.AddItem CStr(x)
+    Next x
+
+    lblStatus.Caption = CStr(lstNames.ListCount) & " LAMBDA function(s) found."
+    mLoading = False
+End Sub
+
+Private Sub ClearEditor()
+    mLoading = True
+
+    mCurrentName = vbNullString
+    txtName.Text = vbNullString
+    txtComment.Text = vbNullString
+    txtFormula.Text = "=LAMBDA(" & vbCrLf & "    x," & vbCrLf & "    x" & vbCrLf & ")"
+    txtTestFormula.Text = vbNullString
+    txtResult.Text = vbNullString
+
+    mDirty = False
+    mLoading = False
+    txtName.SetFocus
+End Sub
+
+Private Sub LoadLambda(ByVal lambdaName As String)
+    Dim nm As Name
+
+    Set nm = GetLambdaName(ActiveWorkbook, lambdaName)
+    If nm Is Nothing Then Exit Sub
+
+    mLoading = True
+
+    mCurrentName = nm.Name
+    txtName.Text = nm.Name
+    txtFormula.Text = nm.RefersTo
+
+    On Error Resume Next
+    txtComment.Text = nm.Comment
+    On Error GoTo 0
+
+    txtTestFormula.Text = "=" & nm.Name & "()"
+    txtResult.Text = vbNullString
+
+    mDirty = False
+    mLoading = False
+End Sub
+
+Private Function ConfirmDiscardChanges() As Boolean
+    If Not mDirty Then
+        ConfirmDiscardChanges = True
+    Else
+        ConfirmDiscardChanges = MsgBox("Discard unsaved changes?", vbQuestion + vbYesNo, "LAMBDA Editor") = vbYes
+    End If
+End Function
+
+Private Sub MarkDirty()
+    If mLoading Then Exit Sub
+
+    mDirty = True
+    lblStatus.Caption = "Unsaved changes"
+End Sub
+
+Private Sub lstNames_Click()
+    If mLoading Then Exit Sub
+    If lstNames.ListIndex < 0 Then Exit Sub
+    If Not ConfirmDiscardChanges Then Exit Sub
+
+    LoadLambda CStr(lstNames.Value)
+End Sub
+
+Private Sub cmdNew_Click()
+    If Not ConfirmDiscardChanges Then Exit Sub
+    ClearEditor
+End Sub
+
+Private Sub cmdRefresh_Click()
+    If Not ConfirmDiscardChanges Then Exit Sub
+    RefreshList
+    ClearEditor
+End Sub
+
+Private Sub cmdSave_Click()
+    SaveCurrentLambda
+End Sub
+
+Private Sub SaveCurrentLambda()
+    On Error GoTo Fail
+
+    SaveLambdaName ActiveWorkbook, txtName.Text, txtFormula.Text, txtComment.Text
+    mCurrentName = CleanNameText(txtName.Text)
+    mDirty = False
+
+    RefreshList
+    SelectNameInList mCurrentName
+    LoadLambda mCurrentName
+
+    lblStatus.Caption = "Saved " & mCurrentName
+    Exit Sub
+
+Fail:
+    lblStatus.Caption = Err.Description
+    MsgBox Err.Description, vbExclamation, "Save failed"
+End Sub
+
+Private Sub SelectNameInList(ByVal lambdaName As String)
+    Dim i As Long
+
+    For i = 0 To lstNames.ListCount - 1
+        If StrComp(CStr(lstNames.List(i)), lambdaName, vbTextCompare) = 0 Then
+            lstNames.ListIndex = i
+            Exit Sub
+        End If
+    Next i
+End Sub
+
+Private Sub cmdDelete_Click()
+    Dim lambdaName As String
+
+    lambdaName = CleanNameText(txtName.Text)
+    If Len(lambdaName) = 0 Then Exit Sub
+
+    If MsgBox("Delete " & lambdaName & "?", vbQuestion + vbYesNo, "Delete LAMBDA") <> vbYes Then Exit Sub
+
+    On Error GoTo Fail
+
+    DeleteLambdaName ActiveWorkbook, lambdaName
+    RefreshList
+    ClearEditor
+
+    lblStatus.Caption = "Deleted " & lambdaName
+    Exit Sub
+
+Fail:
+    lblStatus.Caption = Err.Description
+    MsgBox Err.Description, vbExclamation, "Delete failed"
+End Sub
+
+Private Sub cmdValidate_Click()
+    ValidateCurrentLambda
+End Sub
+
+Private Sub ValidateCurrentLambda()
+    Dim v As Variant
+
+    v = TryEvaluateFormula(txtFormula.Text, ActiveWorkbook)
+
+    If IsError(v) Then
+        txtResult.Text = ValueToText(v)
+        lblStatus.Caption = "Formula did not evaluate cleanly. This may still be valid if it expects arguments."
+    Else
+        txtResult.Text = ValueToText(v)
+        lblStatus.Caption = "Formula evaluates."
+    End If
+End Sub
+
+Private Sub cmdTest_Click()
+    Dim v As Variant
+    Dim expr As String
+
+    expr = Trim$(txtTestFormula.Text)
+
+    If Len(expr) = 0 Then
+        MsgBox "Enter a test formula, for example =MyLambda(1,2).", vbInformation, "Test LAMBDA"
+        Exit Sub
+    End If
+
+    If mDirty Then SaveCurrentLambda
+
+    v = TryEvaluateFormula(expr, ActiveWorkbook)
+    txtResult.Text = ValueToText(v)
+    lblStatus.Caption = "Test completed."
+End Sub
+
+Private Sub cmdClose_Click()
+    If ConfirmDiscardChanges Then Unload Me
+End Sub
+
+Private Sub txtName_Change()
+    MarkDirty
+End Sub
+
+Private Sub txtFormula_Change()
+    MarkDirty
+End Sub
+
+Private Sub txtComment_Change()
+    MarkDirty
+End Sub
+
+Private Sub txtFormula_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If Shift = 2 And KeyCode = vbKeyS Then
+        KeyCode = 0
+        SaveCurrentLambda
+    ElseIf Shift = 2 And KeyCode = vbKeyR Then
+        KeyCode = 0
+        txtFormula.Text = FormatLambdaFormula(txtFormula.Text)
+        txtFormula.SelStart = Len(txtFormula.Text)
+    ElseIf KeyCode = vbKeyTab Then
+        KeyCode = 0
+        InsertAtCursor txtFormula, "    "
+    End If
+End Sub
+
+Private Sub txtTestFormula_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If KeyCode = vbKeyReturn Then
+        KeyCode = 0
+        cmdTest_Click
+    End If
+End Sub
+
+Private Sub InsertAtCursor(ByVal tb As MSForms.TextBox, ByVal s As String)
+    Dim p As Long
+
+    p = tb.SelStart
+    tb.Text = Left$(tb.Text, p) & s & Mid$(tb.Text, p + tb.SelLength + 1)
+    tb.SelStart = p + Len(s)
+End Sub
