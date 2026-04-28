@@ -1,7 +1,9 @@
 # Excel LAMBDA Function Editor VBA Package
 
-A slightly more user-friendly Excel LAMBDA function editor compared to the "Name Manager". \
+A slightly more user-friendly Excel LAMBDA function editor compared to the "Name Manager".
+
 For users who can’t install the [Advanced formula environment](https://www.microsoft.com/en-us/garage/profiles/excel-labs) (part of Excel Labs addin) because their Office environment is restricted by administrators.
+See also https://github.com/alekrutkowski/ExcelLambdaTools for easy importing and exporting of multiple LAMBDA definitions from/to a text file like e.g. [this one](https://github.com/alekrutkowski/ExcelLambdaTools/blob/main/my_excel_lambda_functions.txt).
 
 # Installation
 
