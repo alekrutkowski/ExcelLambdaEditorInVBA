@@ -76,8 +76,12 @@ Private Function BuildLambdaEditorForm(ByVal vbProj As Object) As String
 
     mInstallStep = "Setting UserForm size and caption"
     SafeSet frm, "Caption", "LAMBDA Function Editor"
-    SafeSet frm, "Width", 900
-    SafeSet frm, "Height", 600
+    SafeSet frm, "Width", 940
+    SafeSet frm, "Height", 650
+    SafeSet frm, "InsideWidth", 880
+    SafeSet frm, "InsideHeight", 585
+    SafeSetCompProperty comp, "Width", 940
+    SafeSetCompProperty comp, "Height", 650
 
     mInstallStep = "Adding labels and function list"
     AddLabel frm, "lblFunctions", "Functions", 12, 8, 120, 18
@@ -103,10 +107,11 @@ Private Function BuildLambdaEditorForm(ByVal vbProj As Object) As String
 
     mInstallStep = "Adding test controls"
     AddLabel frm, "lblTest", "Test formula", 220, 406, 100, 18
-    AddTextBox frm, "txtTestFormula", 220, 426, 395, 22, False, False
-    AddButton frm, "cmdValidate", "Validate", 624, 424, 80, 24
-    AddButton frm, "cmdMinify", "Minify", 710, 424, 64, 24
-    AddButton frm, "cmdTest", "Test", 780, 424, 64, 24
+    AddTextBox frm, "txtTestFormula", 220, 426, 325, 22, False, False
+    AddButton frm, "cmdValidate", "Validate", 554, 424, 76, 24
+    AddButton frm, "cmdMinify", "Minify", 636, 424, 64, 24
+    AddButton frm, "cmdVisualize", "Visualize", 706, 424, 80, 24
+    AddButton frm, "cmdTest", "Test", 792, 424, 50, 24
 
     mInstallStep = "Adding result controls"
     AddLabel frm, "lblResult", "Result", 220, 458, 100, 18
@@ -129,9 +134,35 @@ Private Function BuildLambdaEditorForm(ByVal vbProj As Object) As String
         SafeSet txtResultCtl, "ScrollBars", 2
     End If
 
+    mInstallStep = "Auto-fitting UserForm size"
+    AutoFitForm frm
+
     mInstallStep = "Adding UserForm code"
     comp.CodeModule.AddFromString Code_frmLambdaEditor()
 End Function
+
+Private Sub AutoFitForm(ByVal frm As Object)
+    Dim c As Object
+    Dim maxRight As Double
+    Dim maxBottom As Double
+
+    For Each c In frm.Controls
+        If c.Left + c.Width > maxRight Then maxRight = c.Left + c.Width
+        If c.Top + c.Height > maxBottom Then maxBottom = c.Top + c.Height
+    Next c
+
+    maxRight = maxRight + 24
+    maxBottom = maxBottom + 36
+
+    If maxRight < 860 Then maxRight = 860
+    If maxBottom < 560 Then maxBottom = 560
+
+    SafeSet frm, "InsideWidth", maxRight
+    SafeSet frm, "InsideHeight", maxBottom
+
+    SafeSet frm, "Width", maxRight + 40
+    SafeSet frm, "Height", maxBottom + 60
+End Sub
 
 Private Function AddControl(ByVal frm As Object, ByVal progId As String, ByVal controlName As String) As Object
     mInstallStep = "Adding control " & controlName & " using " & progId
@@ -189,6 +220,13 @@ Private Sub SafeSet(ByVal obj As Object, ByVal propertyName As String, ByVal val
     CallByName obj, propertyName, VbLet, value
     On Error GoTo 0
 End Sub
+
+Private Sub SafeSetCompProperty(ByVal comp As Object, ByVal propertyName As String, ByVal value As Variant)
+    On Error Resume Next
+    comp.Properties(propertyName).Value = value
+    On Error GoTo 0
+End Sub
+
 
 Private Sub RemoveComponentIfExists(ByVal vbProj As Object, ByVal componentName As String)
     Dim comp As Object
@@ -836,6 +874,69 @@ Private Function Code_modLambdaStore() As String
     s = s & "        End If" & vbCrLf
     s = s & "    End If" & vbCrLf
     s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Public Sub OpenFormulaBoostVisualization(ByVal formulaText As String)" & vbCrLf
+    s = s & "    Dim url As String" & vbCrLf
+    s = s & "    Dim f As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    f = CleanFormulaText(formulaText)" & vbCrLf
+    s = s & "    url = ""https://www.formulaboost.com/parse?f="" & UrlEncodeFormulaBoost(f)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    On Error GoTo Fail" & vbCrLf
+    s = s & "    ActiveWorkbook.FollowHyperlink Address:=url, NewWindow:=True" & vbCrLf
+    s = s & "    Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Fail:" & vbCrLf
+    s = s & "    MsgBox ""Could not open visualization link."" & vbCrLf & vbCrLf & url & vbCrLf & vbCrLf & Err.Description, vbExclamation, ""Visualize Formula""" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Public Function FormulaBoostVisualizationUrl(ByVal formulaText As String) As String" & vbCrLf
+    s = s & "    FormulaBoostVisualizationUrl = ""https://www.formulaboost.com/parse?f="" & UrlEncodeFormulaBoost(CleanFormulaText(formulaText))" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function UrlEncodeFormulaBoost(ByVal s As String) As String" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim ch As String" & vbCrLf
+    s = s & "    Dim code As Long" & vbCrLf
+    s = s & "    Dim out As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    s = Replace(s, vbCrLf, vbLf)" & vbCrLf
+    s = s & "    s = Replace(s, vbCr, vbLf)" & vbCrLf
+    s = s & "    s = Replace(s, vbLf, """")" & vbCrLf
+    s = s & "    s = Replace(s, vbTab, """")" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For i = 1 To Len(s)" & vbCrLf
+    s = s & "        ch = Mid$(s, i, 1)" & vbCrLf
+    s = s & "        code = AscW(ch)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        If IsFormulaBoostSafeChar(ch) Then" & vbCrLf
+    s = s & "            out = out & ch" & vbCrLf
+    s = s & "        ElseIf code >= 0 And code <= 255 Then" & vbCrLf
+    s = s & "            out = out & ""%"" & Right$(""0"" & Hex$(code), 2)" & vbCrLf
+    s = s & "        Else" & vbCrLf
+    s = s & "            out = out & ""%3F""" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Next i" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    UrlEncodeFormulaBoost = out" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function IsFormulaBoostSafeChar(ByVal ch As String) As Boolean" & vbCrLf
+    s = s & "    Dim code As Long" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    code = AscW(ch)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    Select Case code" & vbCrLf
+    s = s & "        Case 48 To 57, 65 To 90, 97 To 122" & vbCrLf
+    s = s & "            IsFormulaBoostSafeChar = True" & vbCrLf
+    s = s & "        Case 40, 41, 44, 45, 46, 61, 95, 126" & vbCrLf
+    s = s & "            ' Preserve parentheses, commas and equals so URLs look like:" & vbCrLf
+    s = s & "            ' ?f==lambda(x,y,let(z,2,x%2By-z))" & vbCrLf
+    s = s & "            IsFormulaBoostSafeChar = True" & vbCrLf
+    s = s & "        Case Else" & vbCrLf
+    s = s & "            IsFormulaBoostSafeChar = False" & vbCrLf
+    s = s & "    End Select" & vbCrLf
+    s = s & "End Function" & vbCrLf
     Code_modLambdaStore = s
 End Function
 
@@ -849,9 +950,145 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "" & vbCrLf
     s = s & "Private Sub UserForm_Initialize()" & vbCrLf
     s = s & "    Me.Caption = ""LAMBDA Function Editor""" & vbCrLf
+    s = s & "    EnsureEditorSize" & vbCrLf
     s = s & "    ConfigureEditor" & vbCrLf
     s = s & "    RefreshList" & vbCrLf
     s = s & "    ClearEditor" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub UserForm_Activate()" & vbCrLf
+    s = s & "    EnsureEditorSize" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub EnsureEditorSize()" & vbCrLf
+    s = s & "    On Error Resume Next" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    Me.Width = 940" & vbCrLf
+    s = s & "    Me.Height = 650" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    ' InsideWidth and InsideHeight are read-only at runtime in some Excel/VBA builds." & vbCrLf
+    s = s & "    ' Instead, set the outer form size and explicitly place every control." & vbCrLf
+    s = s & "    LayoutControls" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    On Error GoTo 0" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub LayoutControls()" & vbCrLf
+    s = s & "    On Error Resume Next" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    lblFunctions.Left = 12" & vbCrLf
+    s = s & "    lblFunctions.Top = 8" & vbCrLf
+    s = s & "    lblFunctions.Width = 120" & vbCrLf
+    s = s & "    lblFunctions.Height = 18" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    lstNames.Left = 12" & vbCrLf
+    s = s & "    lstNames.Top = 28" & vbCrLf
+    s = s & "    lstNames.Width = 190" & vbCrLf
+    s = s & "    lstNames.Height = 500" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    lblName.Left = 220" & vbCrLf
+    s = s & "    lblName.Top = 8" & vbCrLf
+    s = s & "    lblName.Width = 80" & vbCrLf
+    s = s & "    lblName.Height = 18" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    txtName.Left = 220" & vbCrLf
+    s = s & "    txtName.Top = 28" & vbCrLf
+    s = s & "    txtName.Width = 250" & vbCrLf
+    s = s & "    txtName.Height = 22" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    cmdNew.Left = 488" & vbCrLf
+    s = s & "    cmdNew.Top = 26" & vbCrLf
+    s = s & "    cmdNew.Width = 58" & vbCrLf
+    s = s & "    cmdNew.Height = 24" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    cmdSave.Left = 552" & vbCrLf
+    s = s & "    cmdSave.Top = 26" & vbCrLf
+    s = s & "    cmdSave.Width = 58" & vbCrLf
+    s = s & "    cmdSave.Height = 24" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    cmdDelete.Left = 616" & vbCrLf
+    s = s & "    cmdDelete.Top = 26" & vbCrLf
+    s = s & "    cmdDelete.Width = 62" & vbCrLf
+    s = s & "    cmdDelete.Height = 24" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    cmdRefresh.Left = 684" & vbCrLf
+    s = s & "    cmdRefresh.Top = 26" & vbCrLf
+    s = s & "    cmdRefresh.Width = 70" & vbCrLf
+    s = s & "    cmdRefresh.Height = 24" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    cmdClose.Left = 760" & vbCrLf
+    s = s & "    cmdClose.Top = 26" & vbCrLf
+    s = s & "    cmdClose.Width = 62" & vbCrLf
+    s = s & "    cmdClose.Height = 24" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    lblComment.Left = 220" & vbCrLf
+    s = s & "    lblComment.Top = 58" & vbCrLf
+    s = s & "    lblComment.Width = 100" & vbCrLf
+    s = s & "    lblComment.Height = 18" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    txtComment.Left = 220" & vbCrLf
+    s = s & "    txtComment.Top = 78" & vbCrLf
+    s = s & "    txtComment.Width = 660" & vbCrLf
+    s = s & "    txtComment.Height = 46" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    lblFormula.Left = 220" & vbCrLf
+    s = s & "    lblFormula.Top = 132" & vbCrLf
+    s = s & "    lblFormula.Width = 100" & vbCrLf
+    s = s & "    lblFormula.Height = 18" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    txtFormula.Left = 220" & vbCrLf
+    s = s & "    txtFormula.Top = 152" & vbCrLf
+    s = s & "    txtFormula.Width = 660" & vbCrLf
+    s = s & "    txtFormula.Height = 300" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    lblTest.Left = 220" & vbCrLf
+    s = s & "    lblTest.Top = 462" & vbCrLf
+    s = s & "    lblTest.Width = 100" & vbCrLf
+    s = s & "    lblTest.Height = 18" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    txtTestFormula.Left = 220" & vbCrLf
+    s = s & "    txtTestFormula.Top = 482" & vbCrLf
+    s = s & "    txtTestFormula.Width = 395" & vbCrLf
+    s = s & "    txtTestFormula.Height = 22" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    cmdValidate.Left = 624" & vbCrLf
+    s = s & "    cmdValidate.Top = 480" & vbCrLf
+    s = s & "    cmdValidate.Width = 80" & vbCrLf
+    s = s & "    cmdValidate.Height = 24" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    cmdTest.Left = 710" & vbCrLf
+    s = s & "    cmdTest.Top = 480" & vbCrLf
+    s = s & "    cmdTest.Width = 64" & vbCrLf
+    s = s & "    cmdTest.Height = 24" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    On Error Resume Next" & vbCrLf
+    s = s & "    cmdMinify.Left = 780" & vbCrLf
+    s = s & "    cmdMinify.Top = 480" & vbCrLf
+    s = s & "    cmdMinify.Width = 70" & vbCrLf
+    s = s & "    cmdMinify.Height = 24" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    cmdVisualize.Left = 855" & vbCrLf
+    s = s & "    cmdVisualize.Top = 480" & vbCrLf
+    s = s & "    cmdVisualize.Width = 75" & vbCrLf
+    s = s & "    cmdVisualize.Height = 24" & vbCrLf
+    s = s & "    On Error GoTo 0" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    lblResult.Left = 220" & vbCrLf
+    s = s & "    lblResult.Top = 514" & vbCrLf
+    s = s & "    lblResult.Width = 100" & vbCrLf
+    s = s & "    lblResult.Height = 18" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    txtResult.Left = 220" & vbCrLf
+    s = s & "    txtResult.Top = 534" & vbCrLf
+    s = s & "    txtResult.Width = 660" & vbCrLf
+    s = s & "    txtResult.Height = 48" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    lblStatus.Left = 12" & vbCrLf
+    s = s & "    lblStatus.Top = 590" & vbCrLf
+    s = s & "    lblStatus.Width = 860" & vbCrLf
+    s = s & "    lblStatus.Height = 18" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    On Error GoTo 0" & vbCrLf
     s = s & "End Sub" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Private Sub ConfigureEditor()" & vbCrLf
@@ -1068,6 +1305,20 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "    MsgBox Err.Description, vbExclamation, ""Minify failed""" & vbCrLf
     s = s & "End Sub" & vbCrLf
     s = s & "" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub cmdVisualize_Click()" & vbCrLf
+    s = s & "    On Error GoTo Fail" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    OpenFormulaBoostVisualization txtFormula.Text" & vbCrLf
+    s = s & "    lblStatus.Caption = ""Opened FormulaBoost visualization.""" & vbCrLf
+    s = s & "    Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Fail:" & vbCrLf
+    s = s & "    lblStatus.Caption = Err.Description" & vbCrLf
+    s = s & "    MsgBox Err.Description, vbExclamation, ""Visualize failed""" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
     s = s & "Private Sub cmdClose_Click()" & vbCrLf
     s = s & "    If ConfirmDiscardChanges Then Unload Me" & vbCrLf
     s = s & "End Sub" & vbCrLf
@@ -1095,6 +1346,9 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "    ElseIf Shift = 2 And KeyCode = vbKeyM Then" & vbCrLf
     s = s & "        KeyCode = 0" & vbCrLf
     s = s & "        cmdMinify_Click" & vbCrLf
+    s = s & "    ElseIf Shift = 3 And KeyCode = vbKeyV Then" & vbCrLf
+    s = s & "        KeyCode = 0" & vbCrLf
+    s = s & "        cmdVisualize_Click" & vbCrLf
     s = s & "    ElseIf KeyCode = vbKeyTab Then" & vbCrLf
     s = s & "        KeyCode = 0" & vbCrLf
     s = s & "        InsertAtCursor txtFormula, ""    """ & vbCrLf

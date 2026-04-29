@@ -578,3 +578,67 @@ Private Function LooksLikeExcelReference(ByVal s As String) As Boolean
         End If
     End If
 End Function
+
+Public Sub OpenFormulaBoostVisualization(ByVal formulaText As String)
+    Dim url As String
+    Dim f As String
+
+    f = CleanFormulaText(formulaText)
+    url = "https://www.formulaboost.com/parse?f=" & UrlEncodeFormulaBoost(f)
+
+    On Error GoTo Fail
+    ActiveWorkbook.FollowHyperlink Address:=url, NewWindow:=True
+    Exit Sub
+
+Fail:
+    MsgBox "Could not open visualization link." & vbCrLf & vbCrLf & url & vbCrLf & vbCrLf & Err.Description, vbExclamation, "Visualize Formula"
+End Sub
+
+Public Function FormulaBoostVisualizationUrl(ByVal formulaText As String) As String
+    FormulaBoostVisualizationUrl = "https://www.formulaboost.com/parse?f=" & UrlEncodeFormulaBoost(CleanFormulaText(formulaText))
+End Function
+
+Private Function UrlEncodeFormulaBoost(ByVal s As String) As String
+    Dim i As Long
+    Dim ch As String
+    Dim code As Long
+    Dim out As String
+
+    s = Replace(s, vbCrLf, vbLf)
+    s = Replace(s, vbCr, vbLf)
+    s = Replace(s, vbLf, "")
+    s = Replace(s, vbTab, "")
+
+    For i = 1 To Len(s)
+        ch = Mid$(s, i, 1)
+        code = AscW(ch)
+
+        If IsFormulaBoostSafeChar(ch) Then
+            out = out & ch
+        ElseIf code >= 0 And code <= 255 Then
+            out = out & "%" & Right$("0" & Hex$(code), 2)
+        Else
+            out = out & "%3F"
+        End If
+    Next i
+
+    UrlEncodeFormulaBoost = out
+End Function
+
+Private Function IsFormulaBoostSafeChar(ByVal ch As String) As Boolean
+    Dim code As Long
+
+    code = AscW(ch)
+
+    Select Case code
+        Case 48 To 57, 65 To 90, 97 To 122
+            IsFormulaBoostSafeChar = True
+        Case 40, 41, 44, 45, 46, 61, 95, 126
+            ' Preserve parentheses, commas and equals so URLs look like:
+            ' ?f==lambda(x,y,let(z,2,x%2By-z))
+            IsFormulaBoostSafeChar = True
+        Case Else
+            IsFormulaBoostSafeChar = False
+    End Select
+End Function
+

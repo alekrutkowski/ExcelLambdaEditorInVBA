@@ -6,9 +6,145 @@ Private mCurrentName As String
 
 Private Sub UserForm_Initialize()
     Me.Caption = "LAMBDA Function Editor"
+    EnsureEditorSize
     ConfigureEditor
     RefreshList
     ClearEditor
+End Sub
+
+Private Sub UserForm_Activate()
+    EnsureEditorSize
+End Sub
+
+Private Sub EnsureEditorSize()
+    On Error Resume Next
+
+    Me.Width = 940
+    Me.Height = 650
+
+    ' InsideWidth and InsideHeight are read-only at runtime in some Excel/VBA builds.
+    ' Instead, set the outer form size and explicitly place every control.
+    LayoutControls
+
+    On Error GoTo 0
+End Sub
+
+Private Sub LayoutControls()
+    On Error Resume Next
+
+    lblFunctions.Left = 12
+    lblFunctions.Top = 8
+    lblFunctions.Width = 120
+    lblFunctions.Height = 18
+
+    lstNames.Left = 12
+    lstNames.Top = 28
+    lstNames.Width = 190
+    lstNames.Height = 500
+
+    lblName.Left = 220
+    lblName.Top = 8
+    lblName.Width = 80
+    lblName.Height = 18
+
+    txtName.Left = 220
+    txtName.Top = 28
+    txtName.Width = 250
+    txtName.Height = 22
+
+    cmdNew.Left = 488
+    cmdNew.Top = 26
+    cmdNew.Width = 58
+    cmdNew.Height = 24
+
+    cmdSave.Left = 552
+    cmdSave.Top = 26
+    cmdSave.Width = 58
+    cmdSave.Height = 24
+
+    cmdDelete.Left = 616
+    cmdDelete.Top = 26
+    cmdDelete.Width = 62
+    cmdDelete.Height = 24
+
+    cmdRefresh.Left = 684
+    cmdRefresh.Top = 26
+    cmdRefresh.Width = 70
+    cmdRefresh.Height = 24
+
+    cmdClose.Left = 760
+    cmdClose.Top = 26
+    cmdClose.Width = 62
+    cmdClose.Height = 24
+
+    lblComment.Left = 220
+    lblComment.Top = 58
+    lblComment.Width = 100
+    lblComment.Height = 18
+
+    txtComment.Left = 220
+    txtComment.Top = 78
+    txtComment.Width = 660
+    txtComment.Height = 46
+
+    lblFormula.Left = 220
+    lblFormula.Top = 132
+    lblFormula.Width = 100
+    lblFormula.Height = 18
+
+    txtFormula.Left = 220
+    txtFormula.Top = 152
+    txtFormula.Width = 660
+    txtFormula.Height = 300
+
+    lblTest.Left = 220
+    lblTest.Top = 462
+    lblTest.Width = 100
+    lblTest.Height = 18
+
+    txtTestFormula.Left = 220
+    txtTestFormula.Top = 482
+    txtTestFormula.Width = 395
+    txtTestFormula.Height = 22
+
+    cmdValidate.Left = 624
+    cmdValidate.Top = 480
+    cmdValidate.Width = 80
+    cmdValidate.Height = 24
+
+    cmdTest.Left = 710
+    cmdTest.Top = 480
+    cmdTest.Width = 64
+    cmdTest.Height = 24
+
+    On Error Resume Next
+    cmdMinify.Left = 780
+    cmdMinify.Top = 480
+    cmdMinify.Width = 70
+    cmdMinify.Height = 24
+
+    cmdVisualize.Left = 855
+    cmdVisualize.Top = 480
+    cmdVisualize.Width = 75
+    cmdVisualize.Height = 24
+    On Error GoTo 0
+
+    lblResult.Left = 220
+    lblResult.Top = 514
+    lblResult.Width = 100
+    lblResult.Height = 18
+
+    txtResult.Left = 220
+    txtResult.Top = 534
+    txtResult.Width = 660
+    txtResult.Height = 48
+
+    lblStatus.Left = 12
+    lblStatus.Top = 590
+    lblStatus.Width = 860
+    lblStatus.Height = 18
+
+    On Error GoTo 0
 End Sub
 
 Private Sub ConfigureEditor()
@@ -225,6 +361,20 @@ Fail:
     MsgBox Err.Description, vbExclamation, "Minify failed"
 End Sub
 
+
+
+Private Sub cmdVisualize_Click()
+    On Error GoTo Fail
+
+    OpenFormulaBoostVisualization txtFormula.Text
+    lblStatus.Caption = "Opened FormulaBoost visualization."
+    Exit Sub
+
+Fail:
+    lblStatus.Caption = Err.Description
+    MsgBox Err.Description, vbExclamation, "Visualize failed"
+End Sub
+
 Private Sub cmdClose_Click()
     If ConfirmDiscardChanges Then Unload Me
 End Sub
@@ -252,6 +402,9 @@ Private Sub txtFormula_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shi
     ElseIf Shift = 2 And KeyCode = vbKeyM Then
         KeyCode = 0
         cmdMinify_Click
+    ElseIf Shift = 3 And KeyCode = vbKeyV Then
+        KeyCode = 0
+        cmdVisualize_Click
     ElseIf KeyCode = vbKeyTab Then
         KeyCode = 0
         InsertAtCursor txtFormula, "    "
