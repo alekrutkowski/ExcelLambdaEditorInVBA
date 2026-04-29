@@ -4,11 +4,37 @@ Option Explicit
 Public Function IsLambdaName(ByVal nm As Name) As Boolean
     Dim s As String
 
-    s = UCase$(Replace(nm.RefersTo, vbCrLf, ""))
-    s = Replace(s, vbLf, "")
+    s = FormulaHeadForDetection(nm.RefersTo)
 
-    IsLambdaName = InStr(1, s, "=LAMBDA(", vbTextCompare) > 0 _
-        Or InStr(1, s, "=LAMBDA (", vbTextCompare) > 0
+    IsLambdaName = Left$(s, 8) = "=LAMBDA("
+End Function
+
+Private Function FormulaHeadForDetection(ByVal formulaText As String) As String
+    Dim s As String
+    Dim i As Long
+    Dim ch As String
+
+    s = formulaText
+    s = Replace(s, vbCrLf, " ")
+    s = Replace(s, vbCr, " ")
+    s = Replace(s, vbLf, " ")
+    s = Replace(s, vbTab, " ")
+    s = Trim$(s)
+
+    If Left$(s, 1) = "=" Then
+        i = 2
+
+        Do While i <= Len(s)
+            ch = Mid$(s, i, 1)
+
+            If ch <> " " Then Exit Do
+            i = i + 1
+        Loop
+
+        s = "=" & Mid$(s, i)
+    End If
+
+    FormulaHeadForDetection = UCase$(s)
 End Function
 
 Public Function CleanNameText(ByVal s As String) As String

@@ -300,11 +300,37 @@ Private Function Code_modLambdaStore() As String
     s = s & "Public Function IsLambdaName(ByVal nm As Name) As Boolean" & vbCrLf
     s = s & "    Dim s As String" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    s = UCase$(Replace(nm.RefersTo, vbCrLf, """"))" & vbCrLf
-    s = s & "    s = Replace(s, vbLf, """")" & vbCrLf
+    s = s & "    s = FormulaHeadForDetection(nm.RefersTo)" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    IsLambdaName = InStr(1, s, ""=LAMBDA("", vbTextCompare) > 0 _" & vbCrLf
-    s = s & "        Or InStr(1, s, ""=LAMBDA ("", vbTextCompare) > 0" & vbCrLf
+    s = s & "    IsLambdaName = Left$(s, 8) = ""=LAMBDA(""" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function FormulaHeadForDetection(ByVal formulaText As String) As String" & vbCrLf
+    s = s & "    Dim s As String" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim ch As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    s = formulaText" & vbCrLf
+    s = s & "    s = Replace(s, vbCrLf, "" "")" & vbCrLf
+    s = s & "    s = Replace(s, vbCr, "" "")" & vbCrLf
+    s = s & "    s = Replace(s, vbLf, "" "")" & vbCrLf
+    s = s & "    s = Replace(s, vbTab, "" "")" & vbCrLf
+    s = s & "    s = Trim$(s)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If Left$(s, 1) = ""="" Then" & vbCrLf
+    s = s & "        i = 2" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        Do While i <= Len(s)" & vbCrLf
+    s = s & "            ch = Mid$(s, i, 1)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "            If ch <> "" "" Then Exit Do" & vbCrLf
+    s = s & "            i = i + 1" & vbCrLf
+    s = s & "        Loop" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        s = ""="" & Mid$(s, i)" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    FormulaHeadForDetection = UCase$(s)" & vbCrLf
     s = s & "End Function" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Public Function CleanNameText(ByVal s As String) As String" & vbCrLf
