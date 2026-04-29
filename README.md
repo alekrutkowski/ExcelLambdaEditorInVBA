@@ -19,5 +19,4 @@ You should be able to see and use something like:
 # Notes
 
 - Existing LAMBDA names in the workbook are preserved.
-- You may have to drag and enlarge the automatically-created UserForm1 in the VBA editor.
 - See also potentially useful functions at https://gist.github.com/alekrutkowski/7847543aae6676269b300b8d40847fbe.
