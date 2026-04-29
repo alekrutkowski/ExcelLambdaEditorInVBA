@@ -435,15 +435,71 @@ Private Function Code_modLambdaStore() As String
     s = s & "" & vbCrLf
     s = s & "    On Error GoTo Fail" & vbCrLf
     s = s & "" & vbCrLf
+    s = s & "    If wb Is Nothing Then Set wb = ActiveWorkbook" & vbCrLf
     s = s & "    If Not wb Is Nothing Then wb.Activate" & vbCrLf
+    s = s & "" & vbCrLf
     s = s & "    Application.ReferenceStyle = xlA1" & vbCrLf
-    s = s & "    TryEvaluateFormula = Application.Evaluate(expr)" & vbCrLf
+    s = s & "    TryEvaluateFormula = EvaluateWithFormula2Spill(expr, wb)" & vbCrLf
     s = s & "    Application.ReferenceStyle = oldRefStyle" & vbCrLf
     s = s & "    Exit Function" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Fail:" & vbCrLf
     s = s & "    Application.ReferenceStyle = oldRefStyle" & vbCrLf
     s = s & "    TryEvaluateFormula = CVErr(xlErrValue)" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function EvaluateWithFormula2Spill(ByVal expr As String, ByVal wb As Workbook) As Variant" & vbCrLf
+    s = s & "    Dim ws As Worksheet" & vbCrLf
+    s = s & "    Dim cell As Range" & vbCrLf
+    s = s & "    Dim spillRange As Range" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    On Error GoTo Fallback" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    Set ws = GetScratchSheet(wb)" & vbCrLf
+    s = s & "    Set cell = ws.Range(""A1"")" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    ws.Cells.Clear" & vbCrLf
+    s = s & "    cell.Formula2 = expr" & vbCrLf
+    s = s & "    cell.Calculate" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    On Error Resume Next" & vbCrLf
+    s = s & "    Set spillRange = cell.SpillingToRange" & vbCrLf
+    s = s & "    On Error GoTo Fallback" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If Not spillRange Is Nothing Then" & vbCrLf
+    s = s & "        EvaluateWithFormula2Spill = spillRange.Value" & vbCrLf
+    s = s & "    Else" & vbCrLf
+    s = s & "        EvaluateWithFormula2Spill = cell.Value" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    ws.Cells.Clear" & vbCrLf
+    s = s & "    Exit Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Fallback:" & vbCrLf
+    s = s & "    On Error Resume Next" & vbCrLf
+    s = s & "    If Not ws Is Nothing Then ws.Cells.Clear" & vbCrLf
+    s = s & "    EvaluateWithFormula2Spill = Application.Evaluate(expr)" & vbCrLf
+    s = s & "    On Error GoTo 0" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function GetScratchSheet(ByVal wb As Workbook) As Worksheet" & vbCrLf
+    s = s & "    Const scratchName As String = ""__LambdaEditorScratch""" & vbCrLf
+    s = s & "    Dim ws As Worksheet" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    On Error Resume Next" & vbCrLf
+    s = s & "    Set ws = wb.Worksheets(scratchName)" & vbCrLf
+    s = s & "    On Error GoTo 0" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If ws Is Nothing Then" & vbCrLf
+    s = s & "        Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))" & vbCrLf
+    s = s & "        ws.Name = scratchName" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    On Error Resume Next" & vbCrLf
+    s = s & "    ws.Visible = xlSheetVeryHidden" & vbCrLf
+    s = s & "    On Error GoTo 0" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    Set GetScratchSheet = ws" & vbCrLf
     s = s & "End Function" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Public Function ValueToText(ByVal v As Variant) As String" & vbCrLf

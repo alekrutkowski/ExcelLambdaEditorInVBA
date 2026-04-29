@@ -139,15 +139,71 @@ Public Function TryEvaluateFormula(ByVal formulaText As String, Optional ByVal w
 
     On Error GoTo Fail
 
+    If wb Is Nothing Then Set wb = ActiveWorkbook
     If Not wb Is Nothing Then wb.Activate
+
     Application.ReferenceStyle = xlA1
-    TryEvaluateFormula = Application.Evaluate(expr)
+    TryEvaluateFormula = EvaluateWithFormula2Spill(expr, wb)
     Application.ReferenceStyle = oldRefStyle
     Exit Function
 
 Fail:
     Application.ReferenceStyle = oldRefStyle
     TryEvaluateFormula = CVErr(xlErrValue)
+End Function
+
+Private Function EvaluateWithFormula2Spill(ByVal expr As String, ByVal wb As Workbook) As Variant
+    Dim ws As Worksheet
+    Dim cell As Range
+    Dim spillRange As Range
+
+    On Error GoTo Fallback
+
+    Set ws = GetScratchSheet(wb)
+    Set cell = ws.Range("A1")
+
+    ws.Cells.Clear
+    cell.Formula2 = expr
+    cell.Calculate
+
+    On Error Resume Next
+    Set spillRange = cell.SpillingToRange
+    On Error GoTo Fallback
+
+    If Not spillRange Is Nothing Then
+        EvaluateWithFormula2Spill = spillRange.Value
+    Else
+        EvaluateWithFormula2Spill = cell.Value
+    End If
+
+    ws.Cells.Clear
+    Exit Function
+
+Fallback:
+    On Error Resume Next
+    If Not ws Is Nothing Then ws.Cells.Clear
+    EvaluateWithFormula2Spill = Application.Evaluate(expr)
+    On Error GoTo 0
+End Function
+
+Private Function GetScratchSheet(ByVal wb As Workbook) As Worksheet
+    Const scratchName As String = "__LambdaEditorScratch"
+    Dim ws As Worksheet
+
+    On Error Resume Next
+    Set ws = wb.Worksheets(scratchName)
+    On Error GoTo 0
+
+    If ws Is Nothing Then
+        Set ws = wb.Worksheets.Add(After:=wb.Worksheets(wb.Worksheets.Count))
+        ws.Name = scratchName
+    End If
+
+    On Error Resume Next
+    ws.Visible = xlSheetVeryHidden
+    On Error GoTo 0
+
+    Set GetScratchSheet = ws
 End Function
 
 Public Function ValueToText(ByVal v As Variant) As String
