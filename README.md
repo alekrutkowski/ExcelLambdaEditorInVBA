@@ -13,8 +13,7 @@ See also https://github.com/alekrutkowski/ExcelLambdaTools for easy importing an
 4. Run `ShowLambdaEditor` macro.
 
 You should be able to see and use something like:
-<img width="2170" height="1440" alt="image" src="https://github.com/user-attachments/assets/41a326db-1483-4896-a136-a7d591d8ca63" />
-
+<img width="2330" height="1615" alt="image" src="https://github.com/user-attachments/assets/47015744-d37b-4d22-a749-904923e0b47c" />
 
 # Notes
 
