@@ -163,6 +163,52 @@ Private Function ErrorText(ByVal v As Variant) As String
 End Function
 
 Private Function ArrayToText(ByVal v As Variant) As String
+    Dim dims As Long
+
+    dims = ArrayDimensions(v)
+
+    If dims = 1 Then
+        ArrayToText = Array1DToText(v)
+    ElseIf dims = 2 Then
+        ArrayToText = Array2DToText(v)
+    Else
+        ArrayToText = "<array with " & CStr(dims) & " dimensions>"
+    End If
+End Function
+
+Private Function ArrayDimensions(ByVal v As Variant) As Long
+    Dim n As Long
+    Dim tmp As Long
+
+    On Error GoTo Done
+
+    For n = 1 To 60
+        tmp = LBound(v, n)
+    Next n
+
+Done:
+    ArrayDimensions = n - 1
+End Function
+
+Private Function Array1DToText(ByVal v As Variant) As String
+    Dim i As Long
+    Dim i1 As Long
+    Dim i2 As Long
+    Dim cells() As String
+
+    i1 = LBound(v, 1)
+    i2 = UBound(v, 1)
+
+    ReDim cells(i1 To i2)
+
+    For i = i1 To i2
+        cells(i) = ValueToText(v(i))
+    Next i
+
+    Array1DToText = Join(cells, vbTab)
+End Function
+
+Private Function Array2DToText(ByVal v As Variant) As String
     Dim r As Long
     Dim c As Long
     Dim r1 As Long
@@ -189,7 +235,7 @@ Private Function ArrayToText(ByVal v As Variant) As String
         lines(r) = Join(cells, vbTab)
     Next r
 
-    ArrayToText = Join(lines, vbCrLf)
+    Array2DToText = Join(lines, vbCrLf)
 End Function
 
 Public Function FormatLambdaFormula(ByVal s As String) As String

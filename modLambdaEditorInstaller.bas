@@ -459,6 +459,52 @@ Private Function Code_modLambdaStore() As String
     s = s & "End Function" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Private Function ArrayToText(ByVal v As Variant) As String" & vbCrLf
+    s = s & "    Dim dims As Long" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    dims = ArrayDimensions(v)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If dims = 1 Then" & vbCrLf
+    s = s & "        ArrayToText = Array1DToText(v)" & vbCrLf
+    s = s & "    ElseIf dims = 2 Then" & vbCrLf
+    s = s & "        ArrayToText = Array2DToText(v)" & vbCrLf
+    s = s & "    Else" & vbCrLf
+    s = s & "        ArrayToText = ""<array with "" & CStr(dims) & "" dimensions>""" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function ArrayDimensions(ByVal v As Variant) As Long" & vbCrLf
+    s = s & "    Dim n As Long" & vbCrLf
+    s = s & "    Dim tmp As Long" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    On Error GoTo Done" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For n = 1 To 60" & vbCrLf
+    s = s & "        tmp = LBound(v, n)" & vbCrLf
+    s = s & "    Next n" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Done:" & vbCrLf
+    s = s & "    ArrayDimensions = n - 1" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function Array1DToText(ByVal v As Variant) As String" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim i1 As Long" & vbCrLf
+    s = s & "    Dim i2 As Long" & vbCrLf
+    s = s & "    Dim cells() As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    i1 = LBound(v, 1)" & vbCrLf
+    s = s & "    i2 = UBound(v, 1)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    ReDim cells(i1 To i2)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For i = i1 To i2" & vbCrLf
+    s = s & "        cells(i) = ValueToText(v(i))" & vbCrLf
+    s = s & "    Next i" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    Array1DToText = Join(cells, vbTab)" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function Array2DToText(ByVal v As Variant) As String" & vbCrLf
     s = s & "    Dim r As Long" & vbCrLf
     s = s & "    Dim c As Long" & vbCrLf
     s = s & "    Dim r1 As Long" & vbCrLf
@@ -485,7 +531,7 @@ Private Function Code_modLambdaStore() As String
     s = s & "        lines(r) = Join(cells, vbTab)" & vbCrLf
     s = s & "    Next r" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    ArrayToText = Join(lines, vbCrLf)" & vbCrLf
+    s = s & "    Array2DToText = Join(lines, vbCrLf)" & vbCrLf
     s = s & "End Function" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Public Function FormatLambdaFormula(ByVal s As String) As String" & vbCrLf
@@ -939,7 +985,6 @@ Private Function Code_modLambdaStore() As String
     s = s & "End Function" & vbCrLf
     Code_modLambdaStore = s
 End Function
-
 Private Function Code_frmLambdaEditor() As String
     Dim s As String
     s = s & "Option Explicit" & vbCrLf
