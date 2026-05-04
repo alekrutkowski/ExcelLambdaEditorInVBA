@@ -17,4 +17,5 @@ You should be able to see and use something like:
 # Notes
 
 - Existing LAMBDA names in the workbook are preserved.
+- The <kbd>Visualize</kbd> button opens a formulaboost.com's web page with the definition of the current lambda function properly syntax-highlighted and indented for easier analysis and editing. E.g. for the `setdiff` function from the screenshot above it opens [this](https://www.formulaboost.com/parse?f==LAMBDA(Range1,Range2,%20UNIQUE(FILTER(Range1,%20ISNA(MATCH(Range1,%20Range2,%200)))))) page.
 - See also potentially useful functions at https://github.com/alekrutkowski/ExcelLambdaTools/blob/main/my_excel_lambda_functions.txt and https://gist.github.com/alekrutkowski/7847543aae6676269b300b8d40847fbe.
