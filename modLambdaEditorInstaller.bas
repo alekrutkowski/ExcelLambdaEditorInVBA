@@ -75,17 +75,18 @@ Private Function BuildLambdaEditorForm(ByVal vbProj As Object) As String
     Set frm = comp.Designer
 
     mInstallStep = "Setting UserForm size and caption"
-    SafeSet frm, "Caption", "LAMBDA Function Editor"
-    SafeSet frm, "Width", 940
-    SafeSet frm, "Height", 650
+    SafeSet frm, "Caption", " "
+    SafeSet frm, "Width", 1020
+    SafeSet frm, "Height", 660
     SafeSet frm, "InsideWidth", 880
     SafeSet frm, "InsideHeight", 585
-    SafeSetCompProperty comp, "Width", 940
-    SafeSetCompProperty comp, "Height", 650
+    SafeSetCompProperty comp, "Width", 1020
+    SafeSetCompProperty comp, "Height", 660
 
     mInstallStep = "Adding labels and function list"
-    AddLabel frm, "lblFunctions", "Functions", 12, 8, 120, 18
-    AddListBox frm, "lstNames", 12, 28, 190, 450
+    AddLabel frm, "lblAppTitle", "LAMBDA Function Editor", 12, 8, 220, 18
+    AddLabel frm, "lblFunctions", "Functions", 12, 34, 120, 18
+    AddListBox frm, "lstNames", 12, 54, 190, 474
 
     mInstallStep = "Adding name field and top buttons"
     AddLabel frm, "lblName", "Name", 220, 8, 80, 18
@@ -99,14 +100,14 @@ Private Function BuildLambdaEditorForm(ByVal vbProj As Object) As String
 
     mInstallStep = "Adding comment field"
     AddLabel frm, "lblComment", "Comment", 220, 58, 100, 18
-    AddTextBox frm, "txtComment", 220, 78, 602, 46, True, True
+    AddTextBox frm, "txtComment", 220, 78, 690, 46, True, True
 
     mInstallStep = "Adding formula editor"
     AddLabel frm, "lblFormula", "Formula", 220, 132, 100, 18
-    Set txtFormulaCtl = AddTextBox(frm, "txtFormula", 220, 152, 602, 245, True, False)
+    Set txtFormulaCtl = AddTextBox(frm, "txtFormula", 220, 152, 690, 300, True, False)
 
     mInstallStep = "Adding test controls"
-    AddLabel frm, "lblTest", "Test formula", 220, 406, 100, 18
+    AddLabel frm, "lblTest", "Test formula", 220, 462, 100, 18
     AddTextBox frm, "txtTestFormula", 220, 426, 325, 22, False, False
     AddButton frm, "cmdValidate", "Validate", 554, 424, 76, 24
     AddButton frm, "cmdMinify", "Minify", 636, 424, 64, 24
@@ -114,10 +115,14 @@ Private Function BuildLambdaEditorForm(ByVal vbProj As Object) As String
     AddButton frm, "cmdTest", "Test", 792, 424, 50, 24
 
     mInstallStep = "Adding result controls"
-    AddLabel frm, "lblResult", "Result", 220, 458, 100, 18
-    Set txtResultCtl = AddTextBox(frm, "txtResult", 220, 478, 602, 48, True, True)
+    AddLabel frm, "lblResult", "Result", 220, 514, 100, 18
+    Set txtResultCtl = AddTextBox(frm, "txtResult", 220, 534, 690, 48, True, True)
 
-    AddLabel frm, "lblStatus", "", 12, 520, 810, 18
+    AddLabel frm, "lblStatus", "", 12, 610, 960, 18
+
+    AddButton frm, "cmdImportFile", "Import file", 220, 595, 95, 24
+    AddButton frm, "cmdImportUrl", "Import URL", 322, 595, 95, 24
+    AddButton frm, "cmdExport", "Export", 424, 595, 95, 24
 
     mInstallStep = "Configuring formula editor"
     If Not txtFormulaCtl Is Nothing Then
@@ -205,6 +210,10 @@ Private Sub AddListBox(ByVal frm As Object, ByVal controlName As String, ByVal l
 
     Set c = AddControl(frm, "Forms.ListBox.1", controlName)
     PlaceControl c, leftPos, topPos, widthVal, heightVal
+
+    If controlName = "lstNames" Then
+        SafeSet c, "MultiSelect", 2
+    End If
 End Sub
 
 Private Sub AddButton(ByVal frm As Object, ByVal controlName As String, ByVal captionText As String, ByVal leftPos As Single, ByVal topPos As Single, ByVal widthVal As Single, ByVal heightVal As Single)
@@ -1065,6 +1074,297 @@ Private Function Code_modLambdaStore() As String
     s = s & "            IsFormulaBoostSafeChar = False" & vbCrLf
     s = s & "    End Select" & vbCrLf
     s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Public Sub ImportLambdasFromTextFile(Optional ByVal wb As Workbook)" & vbCrLf
+    s = s & "    Dim filePath As Variant" & vbCrLf
+    s = s & "    Dim textContent As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If wb Is Nothing Then Set wb = ActiveWorkbook" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    filePath = Application.GetOpenFilename(""Text Files (*.txt), *.txt, All Files (*.*), *.*"", , ""Import LAMBDA definitions"")" & vbCrLf
+    s = s & "    If VarType(filePath) = vbBoolean Then Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    textContent = ReadTextFile(CStr(filePath))" & vbCrLf
+    s = s & "    ImportLambdasFromText textContent, wb" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Public Sub ImportLambdasFromUrl(Optional ByVal wb As Workbook)" & vbCrLf
+    s = s & "    Dim url As String" & vbCrLf
+    s = s & "    Dim textContent As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If wb Is Nothing Then Set wb = ActiveWorkbook" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    url = InputBox(""Enter a raw text URL containing LAMBDA definitions:"", ""Import LAMBDAs from URL"")" & vbCrLf
+    s = s & "    If Len(Trim$(url)) = 0 Then Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    textContent = ReadUrlText(url)" & vbCrLf
+    s = s & "    ImportLambdasFromText textContent, wb" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Public Sub ExportLambdasToTextFile(Optional ByVal wb As Workbook)" & vbCrLf
+    s = s & "    Dim filePath As Variant" & vbCrLf
+    s = s & "    Dim textContent As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If wb Is Nothing Then Set wb = ActiveWorkbook" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    textContent = ExportLambdasToText(wb)" & vbCrLf
+    s = s & "    If Len(textContent) = 0 Then" & vbCrLf
+    s = s & "        MsgBox ""No LAMBDA functions found in the Name Manager."", vbInformation, ""Export LAMBDAs""" & vbCrLf
+    s = s & "        Exit Sub" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    filePath = Application.GetSaveAsFilename(InitialFileName:=""my_excel_lambda_functions.txt"", _" & vbCrLf
+    s = s & "                                             FileFilter:=""Text Files (*.txt), *.txt"", _" & vbCrLf
+    s = s & "                                             Title:=""Export LAMBDA definitions"")" & vbCrLf
+    s = s & "    If VarType(filePath) = vbBoolean Then Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    WriteTextFile CStr(filePath), textContent" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    On Error Resume Next" & vbCrLf
+    s = s & "    Shell ""notepad.exe "" & Chr$(34) & CStr(filePath) & Chr$(34), vbNormalFocus" & vbCrLf
+    s = s & "    On Error GoTo 0" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Public Sub ImportLambdasFromText(ByVal textContent As String, Optional ByVal wb As Workbook)" & vbCrLf
+    s = s & "    Dim lines As Variant" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim line As String" & vbCrLf
+    s = s & "    Dim pendingComment As String" & vbCrLf
+    s = s & "    Dim commentText As String" & vbCrLf
+    s = s & "    Dim lambdaName As String" & vbCrLf
+    s = s & "    Dim lambdaBody As String" & vbCrLf
+    s = s & "    Dim inLambda As Boolean" & vbCrLf
+    s = s & "    Dim importedCount As Long" & vbCrLf
+    s = s & "    Dim overwriteList As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If wb Is Nothing Then Set wb = ActiveWorkbook" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    textContent = NormalizeNewlines(textContent)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    overwriteList = ImportedOverwriteList(textContent, wb)" & vbCrLf
+    s = s & "    If Len(overwriteList) > 0 Then" & vbCrLf
+    s = s & "        If MsgBox(""The import will overwrite existing LAMBDA function(s):"" & vbCrLf & vbCrLf & _" & vbCrLf
+    s = s & "                  overwriteList & vbCrLf & _" & vbCrLf
+    s = s & "                  ""Continue and overwrite them?"", _" & vbCrLf
+    s = s & "                  vbExclamation + vbYesNo, ""Confirm LAMBDA overwrite"") <> vbYes Then Exit Sub" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    lines = Split(textContent, vbLf)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For i = LBound(lines) To UBound(lines)" & vbCrLf
+    s = s & "        line = Trim$(CStr(lines(i)))" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        If Left$(line, 2) = ""##"" Then" & vbCrLf
+    s = s & "            ' Ignore double-hash comments." & vbCrLf
+    s = s & "        ElseIf Len(line) = 0 Then" & vbCrLf
+    s = s & "            If inLambda Then" & vbCrLf
+    s = s & "                SaveImportedLambda wb, lambdaName, lambdaBody, commentText" & vbCrLf
+    s = s & "                importedCount = importedCount + 1" & vbCrLf
+    s = s & "                lambdaName = vbNullString" & vbCrLf
+    s = s & "                lambdaBody = vbNullString" & vbCrLf
+    s = s & "                commentText = vbNullString" & vbCrLf
+    s = s & "                inLambda = False" & vbCrLf
+    s = s & "            End If" & vbCrLf
+    s = s & "        ElseIf Left$(line, 1) = ""#"" And Not inLambda Then" & vbCrLf
+    s = s & "            If Len(pendingComment) > 0 Then pendingComment = pendingComment & vbLf" & vbCrLf
+    s = s & "            pendingComment = pendingComment & Mid$(line, 2)" & vbCrLf
+    s = s & "        ElseIf IsLambdaDefinitionStart(line) Then" & vbCrLf
+    s = s & "            If inLambda Then" & vbCrLf
+    s = s & "                SaveImportedLambda wb, lambdaName, lambdaBody, commentText" & vbCrLf
+    s = s & "                importedCount = importedCount + 1" & vbCrLf
+    s = s & "            End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "            ParseLambdaDefinitionStart line, lambdaName, lambdaBody" & vbCrLf
+    s = s & "            commentText = pendingComment" & vbCrLf
+    s = s & "            pendingComment = vbNullString" & vbCrLf
+    s = s & "            inLambda = True" & vbCrLf
+    s = s & "        ElseIf inLambda Then" & vbCrLf
+    s = s & "            lambdaBody = lambdaBody & vbLf & line" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Next i" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If inLambda Then" & vbCrLf
+    s = s & "        SaveImportedLambda wb, lambdaName, lambdaBody, commentText" & vbCrLf
+    s = s & "        importedCount = importedCount + 1" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    MsgBox ""Imported "" & CStr(importedCount) & "" LAMBDA definition(s)."", vbInformation, ""Import LAMBDAs""" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Public Function ExportLambdasToText(Optional ByVal wb As Workbook) As String" & vbCrLf
+    s = s & "    Dim nameItem As Name" & vbCrLf
+    s = s & "    Dim outputText As String" & vbCrLf
+    s = s & "    Dim formulaText As String" & vbCrLf
+    s = s & "    Dim commentText As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If wb Is Nothing Then Set wb = ActiveWorkbook" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For Each nameItem In wb.Names" & vbCrLf
+    s = s & "        If IsLambdaName(nameItem) Then" & vbCrLf
+    s = s & "            commentText = CommentLinesForExport(nameItem.Comment)" & vbCrLf
+    s = s & "            formulaText = CleanFormulaText(nameItem.RefersTo)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "            If Len(commentText) > 0 Then outputText = outputText & commentText & vbCrLf" & vbCrLf
+    s = s & "            outputText = outputText & nameItem.Name & "" "" & formulaText & vbCrLf & vbCrLf" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Next nameItem" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    ExportLambdasToText = outputText" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function ImportedOverwriteList(ByVal textContent As String, ByVal wb As Workbook) As String" & vbCrLf
+    s = s & "    Dim lines As Variant" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim line As String" & vbCrLf
+    s = s & "    Dim lambdaName As String" & vbCrLf
+    s = s & "    Dim lambdaBody As String" & vbCrLf
+    s = s & "    Dim outputText As String" & vbCrLf
+    s = s & "    Dim shownCount As Long" & vbCrLf
+    s = s & "    Dim totalCount As Long" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    lines = Split(textContent, vbLf)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For i = LBound(lines) To UBound(lines)" & vbCrLf
+    s = s & "        line = Trim$(CStr(lines(i)))" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        If IsLambdaDefinitionStart(line) Then" & vbCrLf
+    s = s & "            ParseLambdaDefinitionStart line, lambdaName, lambdaBody" & vbCrLf
+    s = s & "            lambdaName = CleanImportedName(lambdaName)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "            If LambdaNameExists(wb, lambdaName) Then" & vbCrLf
+    s = s & "                totalCount = totalCount + 1" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "                If shownCount < 20 Then" & vbCrLf
+    s = s & "                    outputText = outputText & lambdaName & vbCrLf" & vbCrLf
+    s = s & "                    shownCount = shownCount + 1" & vbCrLf
+    s = s & "                End If" & vbCrLf
+    s = s & "            End If" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Next i" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If totalCount > shownCount Then" & vbCrLf
+    s = s & "        outputText = outputText & ""...and "" & CStr(totalCount - shownCount) & "" more."" & vbCrLf" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    ImportedOverwriteList = outputText" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub SaveImportedLambda(ByVal wb As Workbook, ByVal lambdaName As String, ByVal lambdaBody As String, ByVal commentText As String)" & vbCrLf
+    s = s & "    lambdaName = CleanImportedName(lambdaName)" & vbCrLf
+    s = s & "    lambdaBody = CleanFormulaText(lambdaBody)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If Len(lambdaName) = 0 Then Exit Sub" & vbCrLf
+    s = s & "    If InStr(1, lambdaBody, ""=LAMBDA"", vbTextCompare) <> 1 Then Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    SaveLambdaName wb, lambdaName, lambdaBody, commentText" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function IsLambdaDefinitionStart(ByVal line As String) As Boolean" & vbCrLf
+    s = s & "    Dim eqPos As Long" & vbCrLf
+    s = s & "    Dim leftPart As String" & vbCrLf
+    s = s & "    Dim rightPart As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    eqPos = InStr(1, line, ""="", vbBinaryCompare)" & vbCrLf
+    s = s & "    If eqPos = 0 Then Exit Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    leftPart = Trim$(Left$(line, eqPos - 1))" & vbCrLf
+    s = s & "    rightPart = Trim$(Mid$(line, eqPos + 1))" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If Len(leftPart) = 0 Then Exit Function" & vbCrLf
+    s = s & "    If Not IsValidImportedName(leftPart) Then Exit Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    IsLambdaDefinitionStart = Left$(UCase$(LTrim$(rightPart)), 7) = ""LAMBDA(""" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub ParseLambdaDefinitionStart(ByVal line As String, ByRef lambdaName As String, ByRef lambdaBody As String)" & vbCrLf
+    s = s & "    Dim eqPos As Long" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    eqPos = InStr(1, line, ""="", vbBinaryCompare)" & vbCrLf
+    s = s & "    lambdaName = Trim$(Left$(line, eqPos - 1))" & vbCrLf
+    s = s & "    lambdaBody = ""="" & Trim$(Mid$(line, eqPos + 1))" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function CleanImportedName(ByVal s As String) As String" & vbCrLf
+    s = s & "    s = Trim$(s)" & vbCrLf
+    s = s & "    s = Replace(s, "" "", """")" & vbCrLf
+    s = s & "    s = Replace(s, vbTab, """")" & vbCrLf
+    s = s & "    If Left$(s, 1) = ""="" Then s = Mid$(s, 2)" & vbCrLf
+    s = s & "    CleanImportedName = s" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function IsValidImportedName(ByVal s As String) As Boolean" & vbCrLf
+    s = s & "    Dim re As Object" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    s = CleanImportedName(s)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    Set re = CreateObject(""VBScript.RegExp"")" & vbCrLf
+    s = s & "    re.Pattern = ""^[A-Za-z_\.][A-Za-z0-9_\.]*$""" & vbCrLf
+    s = s & "    re.Global = False" & vbCrLf
+    s = s & "    re.IgnoreCase = True" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    IsValidImportedName = re.Test(s)" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function CommentLinesForExport(ByVal commentText As String) As String" & vbCrLf
+    s = s & "    Dim lines As Variant" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    commentText = NormalizeNewlines(commentText)" & vbCrLf
+    s = s & "    If Len(commentText) = 0 Then Exit Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    lines = Split(commentText, vbLf)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For i = LBound(lines) To UBound(lines)" & vbCrLf
+    s = s & "        lines(i) = ""#"" & CStr(lines(i))" & vbCrLf
+    s = s & "    Next i" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    CommentLinesForExport = Join(lines, vbCrLf)" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function ReadTextFile(ByVal filePath As String) As String" & vbCrLf
+    s = s & "    Dim stm As Object" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    Set stm = CreateObject(""ADODB.Stream"")" & vbCrLf
+    s = s & "    stm.Type = 2" & vbCrLf
+    s = s & "    stm.Charset = ""utf-8""" & vbCrLf
+    s = s & "    stm.Open" & vbCrLf
+    s = s & "    stm.LoadFromFile filePath" & vbCrLf
+    s = s & "    ReadTextFile = stm.ReadText" & vbCrLf
+    s = s & "    stm.Close" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub WriteTextFile(ByVal filePath As String, ByVal textContent As String)" & vbCrLf
+    s = s & "    Dim stm As Object" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    Set stm = CreateObject(""ADODB.Stream"")" & vbCrLf
+    s = s & "    stm.Type = 2" & vbCrLf
+    s = s & "    stm.Charset = ""utf-8""" & vbCrLf
+    s = s & "    stm.Open" & vbCrLf
+    s = s & "    stm.WriteText textContent" & vbCrLf
+    s = s & "    stm.SaveToFile filePath, 2" & vbCrLf
+    s = s & "    stm.Close" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function ReadUrlText(ByVal url As String) As String" & vbCrLf
+    s = s & "    Dim http As Object" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    Set http = CreateObject(""MSXML2.XMLHTTP"")" & vbCrLf
+    s = s & "    http.Open ""GET"", url, False" & vbCrLf
+    s = s & "    http.Send" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If http.Status < 200 Or http.Status >= 300 Then" & vbCrLf
+    s = s & "        Err.Raise vbObjectError + 2000, , ""HTTP "" & CStr(http.Status) & "": "" & http.statusText" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    ReadUrlText = CStr(http.responseText)" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function NormalizeNewlines(ByVal s As String) As String" & vbCrLf
+    s = s & "    s = Replace(s, vbCrLf, vbLf)" & vbCrLf
+    s = s & "    s = Replace(s, vbCr, vbLf)" & vbCrLf
+    s = s & "    NormalizeNewlines = s" & vbCrLf
+    s = s & "End Function" & vbCrLf
     Code_modLambdaStore = s
 End Function
 Private Function Code_frmLambdaEditor() As String
@@ -1074,13 +1374,35 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "Private mLoading As Boolean" & vbCrLf
     s = s & "Private mDirty As Boolean" & vbCrLf
     s = s & "Private mCurrentName As String" & vbCrLf
+    s = s & "Private mHandlingListSelection As Boolean" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Private Sub UserForm_Initialize()" & vbCrLf
-    s = s & "    Me.Caption = ""LAMBDA Function Editor""" & vbCrLf
+    s = s & "    Me.Caption = "" """ & vbCrLf
     s = s & "    EnsureEditorSize" & vbCrLf
+    s = s & "    HideDuplicateTitleLabels" & vbCrLf
     s = s & "    ConfigureEditor" & vbCrLf
     s = s & "    RefreshList" & vbCrLf
     s = s & "    ClearEditor" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub HideDuplicateTitleLabels()" & vbCrLf
+    s = s & "    Dim c As Control" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    On Error Resume Next" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For Each c In Me.Controls" & vbCrLf
+    s = s & "        If TypeName(c) = ""Label"" Then" & vbCrLf
+    s = s & "            If Trim$(CStr(c.Caption)) = ""LAMBDA Function Editor"" Then" & vbCrLf
+    s = s & "                If c.Name <> ""lblAppTitle"" Then" & vbCrLf
+    s = s & "                    c.Caption = vbNullString" & vbCrLf
+    s = s & "                    c.Visible = False" & vbCrLf
+    s = s & "                    c.Height = 0" & vbCrLf
+    s = s & "                End If" & vbCrLf
+    s = s & "            End If" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Next c" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    On Error GoTo 0" & vbCrLf
     s = s & "End Sub" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Private Sub UserForm_Activate()" & vbCrLf
@@ -1090,8 +1412,8 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "Private Sub EnsureEditorSize()" & vbCrLf
     s = s & "    On Error Resume Next" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    Me.Width = 940" & vbCrLf
-    s = s & "    Me.Height = 650" & vbCrLf
+    s = s & "    Me.Width = 1020" & vbCrLf
+    s = s & "    Me.Height = 660" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    ' InsideWidth and InsideHeight are read-only at runtime in some Excel/VBA builds." & vbCrLf
     s = s & "    ' Instead, set the outer form size and explicitly place every control." & vbCrLf
@@ -1103,15 +1425,21 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "Private Sub LayoutControls()" & vbCrLf
     s = s & "    On Error Resume Next" & vbCrLf
     s = s & "" & vbCrLf
+    s = s & "    lblAppTitle.Left = 12" & vbCrLf
+    s = s & "    lblAppTitle.Top = 8" & vbCrLf
+    s = s & "    lblAppTitle.Width = 220" & vbCrLf
+    s = s & "    lblAppTitle.Height = 18" & vbCrLf
+    s = s & "" & vbCrLf
     s = s & "    lblFunctions.Left = 12" & vbCrLf
-    s = s & "    lblFunctions.Top = 8" & vbCrLf
+    s = s & "    lblFunctions.Top = 34" & vbCrLf
     s = s & "    lblFunctions.Width = 120" & vbCrLf
     s = s & "    lblFunctions.Height = 18" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    lstNames.Left = 12" & vbCrLf
-    s = s & "    lstNames.Top = 28" & vbCrLf
+    s = s & "    lstNames.Top = 54" & vbCrLf
     s = s & "    lstNames.Width = 190" & vbCrLf
-    s = s & "    lstNames.Height = 500" & vbCrLf
+    s = s & "    lstNames.Height = 474" & vbCrLf
+    s = s & "    Me.lstNames.MultiSelect = 2" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    lblName.Left = 220" & vbCrLf
     s = s & "    lblName.Top = 8" & vbCrLf
@@ -1155,7 +1483,7 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "" & vbCrLf
     s = s & "    txtComment.Left = 220" & vbCrLf
     s = s & "    txtComment.Top = 78" & vbCrLf
-    s = s & "    txtComment.Width = 660" & vbCrLf
+    s = s & "    txtComment.Width = 690" & vbCrLf
     s = s & "    txtComment.Height = 46" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    lblFormula.Left = 220" & vbCrLf
@@ -1165,7 +1493,7 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "" & vbCrLf
     s = s & "    txtFormula.Left = 220" & vbCrLf
     s = s & "    txtFormula.Top = 152" & vbCrLf
-    s = s & "    txtFormula.Width = 660" & vbCrLf
+    s = s & "    txtFormula.Width = 690" & vbCrLf
     s = s & "    txtFormula.Height = 300" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    lblTest.Left = 220" & vbCrLf
@@ -1175,29 +1503,44 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "" & vbCrLf
     s = s & "    txtTestFormula.Left = 220" & vbCrLf
     s = s & "    txtTestFormula.Top = 482" & vbCrLf
-    s = s & "    txtTestFormula.Width = 395" & vbCrLf
+    s = s & "    txtTestFormula.Width = 430" & vbCrLf
     s = s & "    txtTestFormula.Height = 22" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    cmdValidate.Left = 624" & vbCrLf
+    s = s & "    cmdValidate.Left = 665" & vbCrLf
     s = s & "    cmdValidate.Top = 480" & vbCrLf
     s = s & "    cmdValidate.Width = 80" & vbCrLf
     s = s & "    cmdValidate.Height = 24" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    cmdTest.Left = 710" & vbCrLf
+    s = s & "    cmdTest.Left = 755" & vbCrLf
     s = s & "    cmdTest.Top = 480" & vbCrLf
     s = s & "    cmdTest.Width = 64" & vbCrLf
     s = s & "    cmdTest.Height = 24" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    On Error Resume Next" & vbCrLf
-    s = s & "    cmdMinify.Left = 780" & vbCrLf
+    s = s & "    cmdMinify.Left = 825" & vbCrLf
     s = s & "    cmdMinify.Top = 480" & vbCrLf
     s = s & "    cmdMinify.Width = 70" & vbCrLf
     s = s & "    cmdMinify.Height = 24" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    cmdVisualize.Left = 855" & vbCrLf
+    s = s & "    cmdVisualize.Left = 905" & vbCrLf
     s = s & "    cmdVisualize.Top = 480" & vbCrLf
-    s = s & "    cmdVisualize.Width = 75" & vbCrLf
+    s = s & "    cmdVisualize.Width = 80" & vbCrLf
     s = s & "    cmdVisualize.Height = 24" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    cmdImportFile.Left = 220" & vbCrLf
+    s = s & "    cmdImportFile.Top = 595" & vbCrLf
+    s = s & "    cmdImportFile.Width = 95" & vbCrLf
+    s = s & "    cmdImportFile.Height = 24" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    cmdImportUrl.Left = 322" & vbCrLf
+    s = s & "    cmdImportUrl.Top = 595" & vbCrLf
+    s = s & "    cmdImportUrl.Width = 95" & vbCrLf
+    s = s & "    cmdImportUrl.Height = 24" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    cmdExport.Left = 424" & vbCrLf
+    s = s & "    cmdExport.Top = 595" & vbCrLf
+    s = s & "    cmdExport.Width = 95" & vbCrLf
+    s = s & "    cmdExport.Height = 24" & vbCrLf
     s = s & "    On Error GoTo 0" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    lblResult.Left = 220" & vbCrLf
@@ -1207,12 +1550,12 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "" & vbCrLf
     s = s & "    txtResult.Left = 220" & vbCrLf
     s = s & "    txtResult.Top = 534" & vbCrLf
-    s = s & "    txtResult.Width = 660" & vbCrLf
+    s = s & "    txtResult.Width = 690" & vbCrLf
     s = s & "    txtResult.Height = 48" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    lblStatus.Left = 12" & vbCrLf
-    s = s & "    lblStatus.Top = 590" & vbCrLf
-    s = s & "    lblStatus.Width = 860" & vbCrLf
+    s = s & "    lblStatus.Top = 610" & vbCrLf
+    s = s & "    lblStatus.Width = 960" & vbCrLf
     s = s & "    lblStatus.Height = 18" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    On Error GoTo 0" & vbCrLf
@@ -1220,6 +1563,8 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "" & vbCrLf
     s = s & "Private Sub ConfigureEditor()" & vbCrLf
     s = s & "    On Error Resume Next" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    Me.lstNames.MultiSelect = 2" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    txtFormula.Font.Name = ""Consolas""" & vbCrLf
     s = s & "    txtFormula.Font.Size = 10" & vbCrLf
@@ -1307,11 +1652,51 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "End Sub" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Private Sub lstNames_Click()" & vbCrLf
-    s = s & "    If mLoading Then Exit Sub" & vbCrLf
-    s = s & "    If lstNames.ListIndex < 0 Then Exit Sub" & vbCrLf
-    s = s & "    If Not ConfirmDiscardChanges Then Exit Sub" & vbCrLf
+    s = s & "    HandleListSelection" & vbCrLf
+    s = s & "End Sub" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    LoadLambda CStr(lstNames.Value)" & vbCrLf
+    s = s & "Private Sub lstNames_Change()" & vbCrLf
+    s = s & "    HandleListSelection" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub HandleListSelection()" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim selectedCount As Long" & vbCrLf
+    s = s & "    Dim selectedIndex As Long" & vbCrLf
+    s = s & "    Dim selectedName As String" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If mLoading Then Exit Sub" & vbCrLf
+    s = s & "    If mHandlingListSelection Then Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    mHandlingListSelection = True" & vbCrLf
+    s = s & "    On Error GoTo CleanUp" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    selectedIndex = -1" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For i = 0 To lstNames.ListCount - 1" & vbCrLf
+    s = s & "        If lstNames.Selected(i) Then" & vbCrLf
+    s = s & "            selectedCount = selectedCount + 1" & vbCrLf
+    s = s & "            If selectedIndex = -1 Then selectedIndex = i" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Next i" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If selectedCount = 0 Then GoTo CleanUp" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If selectedCount > 1 Then" & vbCrLf
+    s = s & "        lblStatus.Caption = CStr(selectedCount) & "" LAMBDA functions selected.""" & vbCrLf
+    s = s & "        GoTo CleanUp" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    selectedName = CStr(lstNames.List(selectedIndex))" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If StrComp(selectedName, mCurrentName, vbTextCompare) = 0 And Not mDirty Then GoTo CleanUp" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If Not ConfirmDiscardChanges Then GoTo CleanUp" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    LoadLambda selectedName" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "CleanUp:" & vbCrLf
+    s = s & "    mHandlingListSelection = False" & vbCrLf
     s = s & "End Sub" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Private Sub cmdNew_Click()" & vbCrLf
@@ -1359,27 +1744,83 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "    Next i" & vbCrLf
     s = s & "End Sub" & vbCrLf
     s = s & "" & vbCrLf
+    s = s & "" & vbCrLf
     s = s & "Private Sub cmdDelete_Click()" & vbCrLf
+    s = s & "    Dim i As Long" & vbCrLf
+    s = s & "    Dim count As Long" & vbCrLf
     s = s & "    Dim lambdaName As String" & vbCrLf
+    s = s & "    Dim msg As String" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    lambdaName = CleanNameText(txtName.Text)" & vbCrLf
-    s = s & "    If Len(lambdaName) = 0 Then Exit Sub" & vbCrLf
+    s = s & "    For i = 0 To lstNames.ListCount - 1" & vbCrLf
+    s = s & "        If lstNames.Selected(i) Then count = count + 1" & vbCrLf
+    s = s & "    Next i" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    If MsgBox(""Delete "" & lambdaName & ""?"", vbQuestion + vbYesNo, ""Delete LAMBDA"") <> vbYes Then Exit Sub" & vbCrLf
+    s = s & "    If count = 0 Then" & vbCrLf
+    s = s & "        lambdaName = CleanNameText(txtName.Text)" & vbCrLf
+    s = s & "        If Len(lambdaName) = 0 Then Exit Sub" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    On Error GoTo Fail" & vbCrLf
+    s = s & "        msg = ""Delete "" & lambdaName & ""?""" & vbCrLf
+    s = s & "        If MsgBox(msg, vbQuestion + vbYesNo, ""Delete LAMBDA"") <> vbYes Then Exit Sub" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    DeleteLambdaName ActiveWorkbook, lambdaName" & vbCrLf
+    s = s & "        On Error GoTo FailSingle" & vbCrLf
+    s = s & "        DeleteLambdaName ActiveWorkbook, lambdaName" & vbCrLf
+    s = s & "        RefreshList" & vbCrLf
+    s = s & "        ClearEditor" & vbCrLf
+    s = s & "        lblStatus.Caption = ""Deleted "" & lambdaName" & vbCrLf
+    s = s & "        Exit Sub" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If count = 1 Then" & vbCrLf
+    s = s & "        For i = 0 To lstNames.ListCount - 1" & vbCrLf
+    s = s & "            If lstNames.Selected(i) Then" & vbCrLf
+    s = s & "                lambdaName = CStr(lstNames.List(i))" & vbCrLf
+    s = s & "                Exit For" & vbCrLf
+    s = s & "            End If" & vbCrLf
+    s = s & "        Next i" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        If MsgBox(""Delete "" & lambdaName & ""?"", vbQuestion + vbYesNo, ""Delete LAMBDA"") <> vbYes Then Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        On Error GoTo FailSingle" & vbCrLf
+    s = s & "        DeleteLambdaName ActiveWorkbook, lambdaName" & vbCrLf
+    s = s & "        RefreshList" & vbCrLf
+    s = s & "        ClearEditor" & vbCrLf
+    s = s & "        lblStatus.Caption = ""Deleted "" & lambdaName" & vbCrLf
+    s = s & "        Exit Sub" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    ' First confirmation for true batch deletes." & vbCrLf
+    s = s & "    If MsgBox(""You are about to delete "" & CStr(count) & "" LAMBDA functions. Continue?"", _" & vbCrLf
+    s = s & "              vbExclamation + vbYesNo, ""Confirm batch delete"") <> vbYes Then Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    ' Second stronger confirmation for true batch deletes." & vbCrLf
+    s = s & "    If MsgBox(""This action cannot be undone. Delete all selected functions?"", _" & vbCrLf
+    s = s & "              vbCritical + vbYesNo, ""Final confirmation"") <> vbYes Then Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    On Error GoTo FailMulti" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For i = lstNames.ListCount - 1 To 0 Step -1" & vbCrLf
+    s = s & "        If lstNames.Selected(i) Then" & vbCrLf
+    s = s & "            DeleteLambdaName ActiveWorkbook, CStr(lstNames.List(i))" & vbCrLf
+    s = s & "        End If" & vbCrLf
+    s = s & "    Next i" & vbCrLf
+    s = s & "" & vbCrLf
     s = s & "    RefreshList" & vbCrLf
     s = s & "    ClearEditor" & vbCrLf
-    s = s & "" & vbCrLf
-    s = s & "    lblStatus.Caption = ""Deleted "" & lambdaName" & vbCrLf
+    s = s & "    lblStatus.Caption = ""Deleted "" & CStr(count) & "" LAMBDA functions.""" & vbCrLf
     s = s & "    Exit Sub" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "Fail:" & vbCrLf
+    s = s & "FailSingle:" & vbCrLf
     s = s & "    lblStatus.Caption = Err.Description" & vbCrLf
     s = s & "    MsgBox Err.Description, vbExclamation, ""Delete failed""" & vbCrLf
+    s = s & "    Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "FailMulti:" & vbCrLf
+    s = s & "    lblStatus.Caption = Err.Description" & vbCrLf
+    s = s & "    MsgBox Err.Description, vbExclamation, ""Batch delete failed""" & vbCrLf
     s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Private Sub cmdValidate_Click()" & vbCrLf
     s = s & "    ValidateCurrentLambda" & vbCrLf
@@ -1495,6 +1936,48 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "    p = tb.SelStart" & vbCrLf
     s = s & "    tb.Text = Left$(tb.Text, p) & s & Mid$(tb.Text, p + tb.SelLength + 1)" & vbCrLf
     s = s & "    tb.SelStart = p + Len(s)" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub cmdImportFile_Click()" & vbCrLf
+    s = s & "    On Error GoTo Fail" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If mDirty Then SaveCurrentLambda" & vbCrLf
+    s = s & "    ImportLambdasFromTextFile ActiveWorkbook" & vbCrLf
+    s = s & "    RefreshList" & vbCrLf
+    s = s & "    lblStatus.Caption = ""Import from file completed.""" & vbCrLf
+    s = s & "    Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Fail:" & vbCrLf
+    s = s & "    lblStatus.Caption = Err.Description" & vbCrLf
+    s = s & "    MsgBox Err.Description, vbExclamation, ""Import from file failed""" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub cmdImportUrl_Click()" & vbCrLf
+    s = s & "    On Error GoTo Fail" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If mDirty Then SaveCurrentLambda" & vbCrLf
+    s = s & "    ImportLambdasFromUrl ActiveWorkbook" & vbCrLf
+    s = s & "    RefreshList" & vbCrLf
+    s = s & "    lblStatus.Caption = ""Import from URL completed.""" & vbCrLf
+    s = s & "    Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Fail:" & vbCrLf
+    s = s & "    lblStatus.Caption = Err.Description" & vbCrLf
+    s = s & "    MsgBox Err.Description, vbExclamation, ""Import from URL failed""" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub cmdExport_Click()" & vbCrLf
+    s = s & "    On Error GoTo Fail" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If mDirty Then SaveCurrentLambda" & vbCrLf
+    s = s & "    ExportLambdasToTextFile ActiveWorkbook" & vbCrLf
+    s = s & "    lblStatus.Caption = ""Export completed.""" & vbCrLf
+    s = s & "    Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Fail:" & vbCrLf
+    s = s & "    lblStatus.Caption = Err.Description" & vbCrLf
+    s = s & "    MsgBox Err.Description, vbExclamation, ""Export failed""" & vbCrLf
     s = s & "End Sub" & vbCrLf
     Code_frmLambdaEditor = s
 End Function

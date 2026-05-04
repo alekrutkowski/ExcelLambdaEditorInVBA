@@ -3,13 +3,35 @@ Option Explicit
 Private mLoading As Boolean
 Private mDirty As Boolean
 Private mCurrentName As String
+Private mHandlingListSelection As Boolean
 
 Private Sub UserForm_Initialize()
-    Me.Caption = "LAMBDA Function Editor"
+    Me.Caption = " "
     EnsureEditorSize
+    HideDuplicateTitleLabels
     ConfigureEditor
     RefreshList
     ClearEditor
+End Sub
+
+Private Sub HideDuplicateTitleLabels()
+    Dim c As Control
+
+    On Error Resume Next
+
+    For Each c In Me.Controls
+        If TypeName(c) = "Label" Then
+            If Trim$(CStr(c.Caption)) = "LAMBDA Function Editor" Then
+                If c.Name <> "lblAppTitle" Then
+                    c.Caption = vbNullString
+                    c.Visible = False
+                    c.Height = 0
+                End If
+            End If
+        End If
+    Next c
+
+    On Error GoTo 0
 End Sub
 
 Private Sub UserForm_Activate()
@@ -19,8 +41,8 @@ End Sub
 Private Sub EnsureEditorSize()
     On Error Resume Next
 
-    Me.Width = 940
-    Me.Height = 650
+    Me.Width = 1020
+    Me.Height = 660
 
     ' InsideWidth and InsideHeight are read-only at runtime in some Excel/VBA builds.
     ' Instead, set the outer form size and explicitly place every control.
@@ -32,15 +54,21 @@ End Sub
 Private Sub LayoutControls()
     On Error Resume Next
 
+    lblAppTitle.Left = 12
+    lblAppTitle.Top = 8
+    lblAppTitle.Width = 220
+    lblAppTitle.Height = 18
+
     lblFunctions.Left = 12
-    lblFunctions.Top = 8
+    lblFunctions.Top = 34
     lblFunctions.Width = 120
     lblFunctions.Height = 18
 
     lstNames.Left = 12
-    lstNames.Top = 28
+    lstNames.Top = 54
     lstNames.Width = 190
-    lstNames.Height = 500
+    lstNames.Height = 474
+    Me.lstNames.MultiSelect = 2
 
     lblName.Left = 220
     lblName.Top = 8
@@ -84,7 +112,7 @@ Private Sub LayoutControls()
 
     txtComment.Left = 220
     txtComment.Top = 78
-    txtComment.Width = 660
+    txtComment.Width = 690
     txtComment.Height = 46
 
     lblFormula.Left = 220
@@ -94,7 +122,7 @@ Private Sub LayoutControls()
 
     txtFormula.Left = 220
     txtFormula.Top = 152
-    txtFormula.Width = 660
+    txtFormula.Width = 690
     txtFormula.Height = 300
 
     lblTest.Left = 220
@@ -104,29 +132,44 @@ Private Sub LayoutControls()
 
     txtTestFormula.Left = 220
     txtTestFormula.Top = 482
-    txtTestFormula.Width = 395
+    txtTestFormula.Width = 430
     txtTestFormula.Height = 22
 
-    cmdValidate.Left = 624
+    cmdValidate.Left = 665
     cmdValidate.Top = 480
     cmdValidate.Width = 80
     cmdValidate.Height = 24
 
-    cmdTest.Left = 710
+    cmdTest.Left = 755
     cmdTest.Top = 480
     cmdTest.Width = 64
     cmdTest.Height = 24
 
     On Error Resume Next
-    cmdMinify.Left = 780
+    cmdMinify.Left = 825
     cmdMinify.Top = 480
     cmdMinify.Width = 70
     cmdMinify.Height = 24
 
-    cmdVisualize.Left = 855
+    cmdVisualize.Left = 905
     cmdVisualize.Top = 480
-    cmdVisualize.Width = 75
+    cmdVisualize.Width = 80
     cmdVisualize.Height = 24
+
+    cmdImportFile.Left = 220
+    cmdImportFile.Top = 595
+    cmdImportFile.Width = 95
+    cmdImportFile.Height = 24
+
+    cmdImportUrl.Left = 322
+    cmdImportUrl.Top = 595
+    cmdImportUrl.Width = 95
+    cmdImportUrl.Height = 24
+
+    cmdExport.Left = 424
+    cmdExport.Top = 595
+    cmdExport.Width = 95
+    cmdExport.Height = 24
     On Error GoTo 0
 
     lblResult.Left = 220
@@ -136,12 +179,12 @@ Private Sub LayoutControls()
 
     txtResult.Left = 220
     txtResult.Top = 534
-    txtResult.Width = 660
+    txtResult.Width = 690
     txtResult.Height = 48
 
     lblStatus.Left = 12
-    lblStatus.Top = 590
-    lblStatus.Width = 860
+    lblStatus.Top = 610
+    lblStatus.Width = 960
     lblStatus.Height = 18
 
     On Error GoTo 0
@@ -149,6 +192,8 @@ End Sub
 
 Private Sub ConfigureEditor()
     On Error Resume Next
+
+    Me.lstNames.MultiSelect = 2
 
     txtFormula.Font.Name = "Consolas"
     txtFormula.Font.Size = 10
@@ -236,11 +281,51 @@ Private Sub MarkDirty()
 End Sub
 
 Private Sub lstNames_Click()
-    If mLoading Then Exit Sub
-    If lstNames.ListIndex < 0 Then Exit Sub
-    If Not ConfirmDiscardChanges Then Exit Sub
+    HandleListSelection
+End Sub
 
-    LoadLambda CStr(lstNames.Value)
+Private Sub lstNames_Change()
+    HandleListSelection
+End Sub
+
+Private Sub HandleListSelection()
+    Dim i As Long
+    Dim selectedCount As Long
+    Dim selectedIndex As Long
+    Dim selectedName As String
+
+    If mLoading Then Exit Sub
+    If mHandlingListSelection Then Exit Sub
+
+    mHandlingListSelection = True
+    On Error GoTo CleanUp
+
+    selectedIndex = -1
+
+    For i = 0 To lstNames.ListCount - 1
+        If lstNames.Selected(i) Then
+            selectedCount = selectedCount + 1
+            If selectedIndex = -1 Then selectedIndex = i
+        End If
+    Next i
+
+    If selectedCount = 0 Then GoTo CleanUp
+
+    If selectedCount > 1 Then
+        lblStatus.Caption = CStr(selectedCount) & " LAMBDA functions selected."
+        GoTo CleanUp
+    End If
+
+    selectedName = CStr(lstNames.List(selectedIndex))
+
+    If StrComp(selectedName, mCurrentName, vbTextCompare) = 0 And Not mDirty Then GoTo CleanUp
+
+    If Not ConfirmDiscardChanges Then GoTo CleanUp
+
+    LoadLambda selectedName
+
+CleanUp:
+    mHandlingListSelection = False
 End Sub
 
 Private Sub cmdNew_Click()
@@ -288,27 +373,83 @@ Private Sub SelectNameInList(ByVal lambdaName As String)
     Next i
 End Sub
 
+
 Private Sub cmdDelete_Click()
+    Dim i As Long
+    Dim count As Long
     Dim lambdaName As String
+    Dim msg As String
 
-    lambdaName = CleanNameText(txtName.Text)
-    If Len(lambdaName) = 0 Then Exit Sub
+    For i = 0 To lstNames.ListCount - 1
+        If lstNames.Selected(i) Then count = count + 1
+    Next i
 
-    If MsgBox("Delete " & lambdaName & "?", vbQuestion + vbYesNo, "Delete LAMBDA") <> vbYes Then Exit Sub
+    If count = 0 Then
+        lambdaName = CleanNameText(txtName.Text)
+        If Len(lambdaName) = 0 Then Exit Sub
 
-    On Error GoTo Fail
+        msg = "Delete " & lambdaName & "?"
+        If MsgBox(msg, vbQuestion + vbYesNo, "Delete LAMBDA") <> vbYes Then Exit Sub
 
-    DeleteLambdaName ActiveWorkbook, lambdaName
+        On Error GoTo FailSingle
+        DeleteLambdaName ActiveWorkbook, lambdaName
+        RefreshList
+        ClearEditor
+        lblStatus.Caption = "Deleted " & lambdaName
+        Exit Sub
+    End If
+
+    If count = 1 Then
+        For i = 0 To lstNames.ListCount - 1
+            If lstNames.Selected(i) Then
+                lambdaName = CStr(lstNames.List(i))
+                Exit For
+            End If
+        Next i
+
+        If MsgBox("Delete " & lambdaName & "?", vbQuestion + vbYesNo, "Delete LAMBDA") <> vbYes Then Exit Sub
+
+        On Error GoTo FailSingle
+        DeleteLambdaName ActiveWorkbook, lambdaName
+        RefreshList
+        ClearEditor
+        lblStatus.Caption = "Deleted " & lambdaName
+        Exit Sub
+    End If
+
+    ' First confirmation for true batch deletes.
+    If MsgBox("You are about to delete " & CStr(count) & " LAMBDA functions. Continue?", _
+              vbExclamation + vbYesNo, "Confirm batch delete") <> vbYes Then Exit Sub
+
+    ' Second stronger confirmation for true batch deletes.
+    If MsgBox("This action cannot be undone. Delete all selected functions?", _
+              vbCritical + vbYesNo, "Final confirmation") <> vbYes Then Exit Sub
+
+    On Error GoTo FailMulti
+
+    For i = lstNames.ListCount - 1 To 0 Step -1
+        If lstNames.Selected(i) Then
+            DeleteLambdaName ActiveWorkbook, CStr(lstNames.List(i))
+        End If
+    Next i
+
     RefreshList
     ClearEditor
-
-    lblStatus.Caption = "Deleted " & lambdaName
+    lblStatus.Caption = "Deleted " & CStr(count) & " LAMBDA functions."
     Exit Sub
 
-Fail:
+FailSingle:
     lblStatus.Caption = Err.Description
     MsgBox Err.Description, vbExclamation, "Delete failed"
+    Exit Sub
+
+FailMulti:
+    lblStatus.Caption = Err.Description
+    MsgBox Err.Description, vbExclamation, "Batch delete failed"
 End Sub
+
+
+
 
 Private Sub cmdValidate_Click()
     ValidateCurrentLambda
@@ -424,4 +565,46 @@ Private Sub InsertAtCursor(ByVal tb As MSForms.TextBox, ByVal s As String)
     p = tb.SelStart
     tb.Text = Left$(tb.Text, p) & s & Mid$(tb.Text, p + tb.SelLength + 1)
     tb.SelStart = p + Len(s)
+End Sub
+
+
+Private Sub cmdImportFile_Click()
+    On Error GoTo Fail
+
+    If mDirty Then SaveCurrentLambda
+    ImportLambdasFromTextFile ActiveWorkbook
+    RefreshList
+    lblStatus.Caption = "Import from file completed."
+    Exit Sub
+
+Fail:
+    lblStatus.Caption = Err.Description
+    MsgBox Err.Description, vbExclamation, "Import from file failed"
+End Sub
+
+Private Sub cmdImportUrl_Click()
+    On Error GoTo Fail
+
+    If mDirty Then SaveCurrentLambda
+    ImportLambdasFromUrl ActiveWorkbook
+    RefreshList
+    lblStatus.Caption = "Import from URL completed."
+    Exit Sub
+
+Fail:
+    lblStatus.Caption = Err.Description
+    MsgBox Err.Description, vbExclamation, "Import from URL failed"
+End Sub
+
+Private Sub cmdExport_Click()
+    On Error GoTo Fail
+
+    If mDirty Then SaveCurrentLambda
+    ExportLambdasToTextFile ActiveWorkbook
+    lblStatus.Caption = "Export completed."
+    Exit Sub
+
+Fail:
+    lblStatus.Caption = Err.Description
+    MsgBox Err.Description, vbExclamation, "Export failed"
 End Sub

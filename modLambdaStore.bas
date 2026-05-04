@@ -770,3 +770,293 @@ Private Function IsFormulaBoostSafeChar(ByVal ch As String) As Boolean
     End Select
 End Function
 
+
+Public Sub ImportLambdasFromTextFile(Optional ByVal wb As Workbook)
+    Dim filePath As Variant
+    Dim textContent As String
+
+    If wb Is Nothing Then Set wb = ActiveWorkbook
+
+    filePath = Application.GetOpenFilename("Text Files (*.txt), *.txt, All Files (*.*), *.*", , "Import LAMBDA definitions")
+    If VarType(filePath) = vbBoolean Then Exit Sub
+
+    textContent = ReadTextFile(CStr(filePath))
+    ImportLambdasFromText textContent, wb
+End Sub
+
+Public Sub ImportLambdasFromUrl(Optional ByVal wb As Workbook)
+    Dim url As String
+    Dim textContent As String
+
+    If wb Is Nothing Then Set wb = ActiveWorkbook
+
+    url = InputBox("Enter a raw text URL containing LAMBDA definitions:", "Import LAMBDAs from URL")
+    If Len(Trim$(url)) = 0 Then Exit Sub
+
+    textContent = ReadUrlText(url)
+    ImportLambdasFromText textContent, wb
+End Sub
+
+Public Sub ExportLambdasToTextFile(Optional ByVal wb As Workbook)
+    Dim filePath As Variant
+    Dim textContent As String
+
+    If wb Is Nothing Then Set wb = ActiveWorkbook
+
+    textContent = ExportLambdasToText(wb)
+    If Len(textContent) = 0 Then
+        MsgBox "No LAMBDA functions found in the Name Manager.", vbInformation, "Export LAMBDAs"
+        Exit Sub
+    End If
+
+    filePath = Application.GetSaveAsFilename(InitialFileName:="my_excel_lambda_functions.txt", _
+                                             FileFilter:="Text Files (*.txt), *.txt", _
+                                             Title:="Export LAMBDA definitions")
+    If VarType(filePath) = vbBoolean Then Exit Sub
+
+    WriteTextFile CStr(filePath), textContent
+
+    On Error Resume Next
+    Shell "notepad.exe " & Chr$(34) & CStr(filePath) & Chr$(34), vbNormalFocus
+    On Error GoTo 0
+End Sub
+
+Public Sub ImportLambdasFromText(ByVal textContent As String, Optional ByVal wb As Workbook)
+    Dim lines As Variant
+    Dim i As Long
+    Dim line As String
+    Dim pendingComment As String
+    Dim commentText As String
+    Dim lambdaName As String
+    Dim lambdaBody As String
+    Dim inLambda As Boolean
+    Dim importedCount As Long
+    Dim overwriteList As String
+
+    If wb Is Nothing Then Set wb = ActiveWorkbook
+
+    textContent = NormalizeNewlines(textContent)
+
+    overwriteList = ImportedOverwriteList(textContent, wb)
+    If Len(overwriteList) > 0 Then
+        If MsgBox("The import will overwrite existing LAMBDA function(s):" & vbCrLf & vbCrLf & _
+                  overwriteList & vbCrLf & _
+                  "Continue and overwrite them?", _
+                  vbExclamation + vbYesNo, "Confirm LAMBDA overwrite") <> vbYes Then Exit Sub
+    End If
+
+    lines = Split(textContent, vbLf)
+
+    For i = LBound(lines) To UBound(lines)
+        line = Trim$(CStr(lines(i)))
+
+        If Left$(line, 2) = "##" Then
+            ' Ignore double-hash comments.
+        ElseIf Len(line) = 0 Then
+            If inLambda Then
+                SaveImportedLambda wb, lambdaName, lambdaBody, commentText
+                importedCount = importedCount + 1
+                lambdaName = vbNullString
+                lambdaBody = vbNullString
+                commentText = vbNullString
+                inLambda = False
+            End If
+        ElseIf Left$(line, 1) = "#" And Not inLambda Then
+            If Len(pendingComment) > 0 Then pendingComment = pendingComment & vbLf
+            pendingComment = pendingComment & Mid$(line, 2)
+        ElseIf IsLambdaDefinitionStart(line) Then
+            If inLambda Then
+                SaveImportedLambda wb, lambdaName, lambdaBody, commentText
+                importedCount = importedCount + 1
+            End If
+
+            ParseLambdaDefinitionStart line, lambdaName, lambdaBody
+            commentText = pendingComment
+            pendingComment = vbNullString
+            inLambda = True
+        ElseIf inLambda Then
+            lambdaBody = lambdaBody & vbLf & line
+        End If
+    Next i
+
+    If inLambda Then
+        SaveImportedLambda wb, lambdaName, lambdaBody, commentText
+        importedCount = importedCount + 1
+    End If
+
+    MsgBox "Imported " & CStr(importedCount) & " LAMBDA definition(s).", vbInformation, "Import LAMBDAs"
+End Sub
+
+Public Function ExportLambdasToText(Optional ByVal wb As Workbook) As String
+    Dim nameItem As Name
+    Dim outputText As String
+    Dim formulaText As String
+    Dim commentText As String
+
+    If wb Is Nothing Then Set wb = ActiveWorkbook
+
+    For Each nameItem In wb.Names
+        If IsLambdaName(nameItem) Then
+            commentText = CommentLinesForExport(nameItem.Comment)
+            formulaText = CleanFormulaText(nameItem.RefersTo)
+
+            If Len(commentText) > 0 Then outputText = outputText & commentText & vbCrLf
+            outputText = outputText & nameItem.Name & " " & formulaText & vbCrLf & vbCrLf
+        End If
+    Next nameItem
+
+    ExportLambdasToText = outputText
+End Function
+
+Private Function ImportedOverwriteList(ByVal textContent As String, ByVal wb As Workbook) As String
+    Dim lines As Variant
+    Dim i As Long
+    Dim line As String
+    Dim lambdaName As String
+    Dim lambdaBody As String
+    Dim outputText As String
+    Dim shownCount As Long
+    Dim totalCount As Long
+
+    lines = Split(textContent, vbLf)
+
+    For i = LBound(lines) To UBound(lines)
+        line = Trim$(CStr(lines(i)))
+
+        If IsLambdaDefinitionStart(line) Then
+            ParseLambdaDefinitionStart line, lambdaName, lambdaBody
+            lambdaName = CleanImportedName(lambdaName)
+
+            If LambdaNameExists(wb, lambdaName) Then
+                totalCount = totalCount + 1
+
+                If shownCount < 20 Then
+                    outputText = outputText & lambdaName & vbCrLf
+                    shownCount = shownCount + 1
+                End If
+            End If
+        End If
+    Next i
+
+    If totalCount > shownCount Then
+        outputText = outputText & "...and " & CStr(totalCount - shownCount) & " more." & vbCrLf
+    End If
+
+    ImportedOverwriteList = outputText
+End Function
+
+Private Sub SaveImportedLambda(ByVal wb As Workbook, ByVal lambdaName As String, ByVal lambdaBody As String, ByVal commentText As String)
+    lambdaName = CleanImportedName(lambdaName)
+    lambdaBody = CleanFormulaText(lambdaBody)
+
+    If Len(lambdaName) = 0 Then Exit Sub
+    If InStr(1, lambdaBody, "=LAMBDA", vbTextCompare) <> 1 Then Exit Sub
+
+    SaveLambdaName wb, lambdaName, lambdaBody, commentText
+End Sub
+
+Private Function IsLambdaDefinitionStart(ByVal line As String) As Boolean
+    Dim eqPos As Long
+    Dim leftPart As String
+    Dim rightPart As String
+
+    eqPos = InStr(1, line, "=", vbBinaryCompare)
+    If eqPos = 0 Then Exit Function
+
+    leftPart = Trim$(Left$(line, eqPos - 1))
+    rightPart = Trim$(Mid$(line, eqPos + 1))
+
+    If Len(leftPart) = 0 Then Exit Function
+    If Not IsValidImportedName(leftPart) Then Exit Function
+
+    IsLambdaDefinitionStart = Left$(UCase$(LTrim$(rightPart)), 7) = "LAMBDA("
+End Function
+
+Private Sub ParseLambdaDefinitionStart(ByVal line As String, ByRef lambdaName As String, ByRef lambdaBody As String)
+    Dim eqPos As Long
+
+    eqPos = InStr(1, line, "=", vbBinaryCompare)
+    lambdaName = Trim$(Left$(line, eqPos - 1))
+    lambdaBody = "=" & Trim$(Mid$(line, eqPos + 1))
+End Sub
+
+Private Function CleanImportedName(ByVal s As String) As String
+    s = Trim$(s)
+    s = Replace(s, " ", "")
+    s = Replace(s, vbTab, "")
+    If Left$(s, 1) = "=" Then s = Mid$(s, 2)
+    CleanImportedName = s
+End Function
+
+Private Function IsValidImportedName(ByVal s As String) As Boolean
+    Dim re As Object
+
+    s = CleanImportedName(s)
+
+    Set re = CreateObject("VBScript.RegExp")
+    re.Pattern = "^[A-Za-z_\.][A-Za-z0-9_\.]*$"
+    re.Global = False
+    re.IgnoreCase = True
+
+    IsValidImportedName = re.Test(s)
+End Function
+
+Private Function CommentLinesForExport(ByVal commentText As String) As String
+    Dim lines As Variant
+    Dim i As Long
+
+    commentText = NormalizeNewlines(commentText)
+    If Len(commentText) = 0 Then Exit Function
+
+    lines = Split(commentText, vbLf)
+
+    For i = LBound(lines) To UBound(lines)
+        lines(i) = "#" & CStr(lines(i))
+    Next i
+
+    CommentLinesForExport = Join(lines, vbCrLf)
+End Function
+
+Private Function ReadTextFile(ByVal filePath As String) As String
+    Dim stm As Object
+
+    Set stm = CreateObject("ADODB.Stream")
+    stm.Type = 2
+    stm.Charset = "utf-8"
+    stm.Open
+    stm.LoadFromFile filePath
+    ReadTextFile = stm.ReadText
+    stm.Close
+End Function
+
+Private Sub WriteTextFile(ByVal filePath As String, ByVal textContent As String)
+    Dim stm As Object
+
+    Set stm = CreateObject("ADODB.Stream")
+    stm.Type = 2
+    stm.Charset = "utf-8"
+    stm.Open
+    stm.WriteText textContent
+    stm.SaveToFile filePath, 2
+    stm.Close
+End Sub
+
+Private Function ReadUrlText(ByVal url As String) As String
+    Dim http As Object
+
+    Set http = CreateObject("MSXML2.XMLHTTP")
+    http.Open "GET", url, False
+    http.Send
+
+    If http.Status < 200 Or http.Status >= 300 Then
+        Err.Raise vbObjectError + 2000, , "HTTP " & CStr(http.Status) & ": " & http.statusText
+    End If
+
+    ReadUrlText = CStr(http.responseText)
+End Function
+
+Private Function NormalizeNewlines(ByVal s As String) As String
+    s = Replace(s, vbCrLf, vbLf)
+    s = Replace(s, vbCr, vbLf)
+    NormalizeNewlines = s
+End Function
