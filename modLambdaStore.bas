@@ -814,6 +814,13 @@ Public Sub ExportLambdasToTextFile(Optional ByVal wb As Workbook)
                                              Title:="Export LAMBDA definitions")
     If VarType(filePath) = vbBoolean Then Exit Sub
 
+    If Len(Dir$(CStr(filePath))) > 0 Then
+        If MsgBox("The file already exists:" & vbCrLf & vbCrLf & _
+                  CStr(filePath) & vbCrLf & vbCrLf & _
+                  "Overwrite this file?", _
+                  vbExclamation + vbYesNo, "Confirm export overwrite") <> vbYes Then Exit Sub
+    End If
+
     WriteTextFile CStr(filePath), textContent
 
     On Error Resume Next

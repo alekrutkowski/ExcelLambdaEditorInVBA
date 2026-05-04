@@ -1119,6 +1119,13 @@ Private Function Code_modLambdaStore() As String
     s = s & "                                             Title:=""Export LAMBDA definitions"")" & vbCrLf
     s = s & "    If VarType(filePath) = vbBoolean Then Exit Sub" & vbCrLf
     s = s & "" & vbCrLf
+    s = s & "    If Len(Dir$(CStr(filePath))) > 0 Then" & vbCrLf
+    s = s & "        If MsgBox(""The file already exists:"" & vbCrLf & vbCrLf & _" & vbCrLf
+    s = s & "                  CStr(filePath) & vbCrLf & vbCrLf & _" & vbCrLf
+    s = s & "                  ""Overwrite this file?"", _" & vbCrLf
+    s = s & "                  vbExclamation + vbYesNo, ""Confirm export overwrite"") <> vbYes Then Exit Sub" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
     s = s & "    WriteTextFile CStr(filePath), textContent" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    On Error Resume Next" & vbCrLf
