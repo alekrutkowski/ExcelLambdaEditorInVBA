@@ -9,7 +9,7 @@ See https://www.xlwings.org/blog/excel-lambda-functions for the discussion of th
 # Installation
 
 0. *Delete the previous `frmLambdaEditor`, `modLambdaEditor` and `modLambdaStore` VBA modules and `UserForm1` if they exist.*
-1. Download [`modLambdaEditorInstaller.bas`](https://raw.githubusercontent.com/alekrutkowski/ExcelLambdaEditorInVBA/refs/heads/main/modLambdaEditorInstaller.bas) and import it in Excel (see steps 1-4 from [here](https://support.tetcos.com/support/solutions/articles/14000143233-how-to-import-vba-script-bas-file-in-ms-excel-)).
+1. Download [`modLambdaEditorInstaller.bas`](https://github.com/alekrutkowski/ExcelLambdaEditorInVBA/releases/download/v0.0.1/modLambdaEditorInstaller.bas) and import it in Excel (see steps 1-4 from [here](https://support.tetcos.com/support/solutions/articles/14000143233-how-to-import-vba-script-bas-file-in-ms-excel-)).
 2. Run **once** `InstallLambdaEditor` macro (see [this](https://www.geeksforgeeks.org/excel/how-to-run-a-macro-in-excel/) if you don't know how to run Excel macros).
 3. Run `ShowLambdaEditor` macro any time you want to manage or edit your lambdas. I suggest you add this macro to your "Quick Access Toolbar" (see [this](https://support.microsoft.com/en-gb/office/assign-a-macro-to-a-button-728c83ec-61d0-40bd-b6ba-927f84eb5d2c) for instructions).
 
