@@ -77,16 +77,18 @@ Private Function BuildLambdaEditorForm(ByVal vbProj As Object) As String
     mInstallStep = "Setting UserForm size and caption"
     SafeSet frm, "Caption", " "
     SafeSet frm, "Width", 1020
-    SafeSet frm, "Height", 660
+    SafeSet frm, "Height", 710
     SafeSet frm, "InsideWidth", 880
     SafeSet frm, "InsideHeight", 585
     SafeSetCompProperty comp, "Width", 1020
-    SafeSetCompProperty comp, "Height", 660
+    SafeSetCompProperty comp, "Height", 710
 
     mInstallStep = "Adding labels and function list"
     AddLabel frm, "lblAppTitle", "LAMBDA Function Editor", 12, 8, 220, 18
-    AddLabel frm, "lblFunctions", "Functions", 12, 34, 120, 18
-    AddListBox frm, "lstNames", 12, 54, 190, 474
+    AddLabel frm, "lblFilter", "Filter regex", 12, 34, 80, 18
+    AddTextBox frm, "txtFilter", 12, 54, 190, 22, False, False
+    AddLabel frm, "lblFunctions", "Functions", 12, 84, 120, 18
+    AddListBox frm, "lstNames", 12, 104, 190, 424
 
     mInstallStep = "Adding name field and top buttons"
     AddLabel frm, "lblName", "Name", 220, 8, 80, 18
@@ -116,13 +118,13 @@ Private Function BuildLambdaEditorForm(ByVal vbProj As Object) As String
 
     mInstallStep = "Adding result controls"
     AddLabel frm, "lblResult", "Result", 220, 514, 100, 18
-    Set txtResultCtl = AddTextBox(frm, "txtResult", 220, 534, 690, 48, True, True)
+    Set txtResultCtl = AddTextBox(frm, "txtResult", 220, 534, 690, 86, True, True)
 
-    AddLabel frm, "lblStatus", "", 12, 610, 960, 18
+    AddLabel frm, "lblStatus", "", 12, 676, 960, 18
 
-    AddButton frm, "cmdImportFile", "Import file", 220, 595, 95, 24
-    AddButton frm, "cmdImportUrl", "Import URL", 322, 595, 95, 24
-    AddButton frm, "cmdExport", "Export", 424, 595, 95, 24
+    AddButton frm, "cmdImportFile", "Import file", 220, 638, 95, 24
+    AddButton frm, "cmdImportUrl", "Import URL", 322, 638, 95, 24
+    AddButton frm, "cmdExport", "Export", 424, 638, 95, 24
 
     mInstallStep = "Configuring formula editor"
     If Not txtFormulaCtl Is Nothing Then
@@ -141,6 +143,23 @@ Private Function BuildLambdaEditorForm(ByVal vbProj As Object) As String
 
     mInstallStep = "Auto-fitting UserForm size"
     AutoFitForm frm
+
+    mInstallStep = "Configuring fixed-width fonts"
+    SafeSet frm.Controls("lstNames").Font, "Name", "Consolas"
+    SafeSet frm.Controls("lstNames").Font, "Size", 10
+    SafeSet frm.Controls("txtFilter").Font, "Name", "Consolas"
+    SafeSet frm.Controls("txtFilter").Font, "Size", 10
+    SafeSet frm.Controls("txtName").Font, "Name", "Consolas"
+    SafeSet frm.Controls("txtName").Font, "Size", 10
+    SafeSet frm.Controls("txtComment").Font, "Name", "Consolas"
+    SafeSet frm.Controls("txtComment").Font, "Size", 10
+    SafeSet frm.Controls("txtFormula").Font, "Name", "Consolas"
+    SafeSet frm.Controls("txtFormula").Font, "Size", 10
+    SafeSet frm.Controls("txtTestFormula").Font, "Name", "Consolas"
+    SafeSet frm.Controls("txtTestFormula").Font, "Size", 10
+    SafeSet frm.Controls("txtResult").Font, "Name", "Consolas"
+    SafeSet frm.Controls("txtResult").Font, "Size", 10
+    SafeSet frm.Controls("lblAppTitle").Font, "Bold", True
 
     mInstallStep = "Adding UserForm code"
     comp.CodeModule.AddFromString Code_frmLambdaEditor()
@@ -592,7 +611,7 @@ Private Function Code_modLambdaStore() As String
     s = s & "        cells(i) = ValueToText(v(i))" & vbCrLf
     s = s & "    Next i" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    Array1DToText = Join(cells, vbTab)" & vbCrLf
+    s = s & "    Array1DToText = Join(cells, ""  "")" & vbCrLf
     s = s & "End Function" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Private Function Array2DToText(ByVal v As Variant) As String" & vbCrLf
@@ -604,11 +623,22 @@ Private Function Code_modLambdaStore() As String
     s = s & "    Dim c2 As Long" & vbCrLf
     s = s & "    Dim lines() As String" & vbCrLf
     s = s & "    Dim cells() As String" & vbCrLf
+    s = s & "    Dim widths() As Long" & vbCrLf
+    s = s & "    Dim textValue As String" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    r1 = LBound(v, 1)" & vbCrLf
     s = s & "    r2 = UBound(v, 1)" & vbCrLf
     s = s & "    c1 = LBound(v, 2)" & vbCrLf
     s = s & "    c2 = UBound(v, 2)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    ReDim widths(c1 To c2)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    For r = r1 To r2" & vbCrLf
+    s = s & "        For c = c1 To c2" & vbCrLf
+    s = s & "            textValue = ValueToText(v(r, c))" & vbCrLf
+    s = s & "            If Len(textValue) > widths(c) Then widths(c) = Len(textValue)" & vbCrLf
+    s = s & "        Next c" & vbCrLf
+    s = s & "    Next r" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    ReDim lines(r1 To r2)" & vbCrLf
     s = s & "" & vbCrLf
@@ -616,13 +646,27 @@ Private Function Code_modLambdaStore() As String
     s = s & "        ReDim cells(c1 To c2)" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "        For c = c1 To c2" & vbCrLf
-    s = s & "            cells(c) = ValueToText(v(r, c))" & vbCrLf
+    s = s & "            textValue = ValueToText(v(r, c))" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "            If c < c2 Then" & vbCrLf
+    s = s & "                cells(c) = PadRightText(textValue, widths(c)) & ""  """ & vbCrLf
+    s = s & "            Else" & vbCrLf
+    s = s & "                cells(c) = textValue" & vbCrLf
+    s = s & "            End If" & vbCrLf
     s = s & "        Next c" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "        lines(r) = Join(cells, vbTab)" & vbCrLf
+    s = s & "        lines(r) = Join(cells, vbNullString)" & vbCrLf
     s = s & "    Next r" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    Array2DToText = Join(lines, vbCrLf)" & vbCrLf
+    s = s & "End Function" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Function PadRightText(ByVal s As String, ByVal width As Long) As String" & vbCrLf
+    s = s & "    If Len(s) >= width Then" & vbCrLf
+    s = s & "        PadRightText = s" & vbCrLf
+    s = s & "    Else" & vbCrLf
+    s = s & "        PadRightText = s & Space$(width - Len(s))" & vbCrLf
+    s = s & "    End If" & vbCrLf
     s = s & "End Function" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Public Function FormatLambdaFormula(ByVal s As String) As String" & vbCrLf
@@ -1420,7 +1464,7 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "    On Error Resume Next" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    Me.Width = 1020" & vbCrLf
-    s = s & "    Me.Height = 660" & vbCrLf
+    s = s & "    Me.Height = 710" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    ' InsideWidth and InsideHeight are read-only at runtime in some Excel/VBA builds." & vbCrLf
     s = s & "    ' Instead, set the outer form size and explicitly place every control." & vbCrLf
@@ -1436,16 +1480,27 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "    lblAppTitle.Top = 8" & vbCrLf
     s = s & "    lblAppTitle.Width = 220" & vbCrLf
     s = s & "    lblAppTitle.Height = 18" & vbCrLf
+    s = s & "    lblAppTitle.Font.Bold = True" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    lblFilter.Left = 12" & vbCrLf
+    s = s & "    lblFilter.Top = 34" & vbCrLf
+    s = s & "    lblFilter.Width = 80" & vbCrLf
+    s = s & "    lblFilter.Height = 18" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    txtFilter.Left = 12" & vbCrLf
+    s = s & "    txtFilter.Top = 54" & vbCrLf
+    s = s & "    txtFilter.Width = 190" & vbCrLf
+    s = s & "    txtFilter.Height = 22" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    lblFunctions.Left = 12" & vbCrLf
-    s = s & "    lblFunctions.Top = 34" & vbCrLf
+    s = s & "    lblFunctions.Top = 84" & vbCrLf
     s = s & "    lblFunctions.Width = 120" & vbCrLf
     s = s & "    lblFunctions.Height = 18" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    lstNames.Left = 12" & vbCrLf
-    s = s & "    lstNames.Top = 54" & vbCrLf
+    s = s & "    lstNames.Top = 104" & vbCrLf
     s = s & "    lstNames.Width = 190" & vbCrLf
-    s = s & "    lstNames.Height = 474" & vbCrLf
+    s = s & "    lstNames.Height = 424" & vbCrLf
     s = s & "    Me.lstNames.MultiSelect = 2" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    lblName.Left = 220" & vbCrLf
@@ -1535,17 +1590,17 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "    cmdVisualize.Height = 24" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    cmdImportFile.Left = 220" & vbCrLf
-    s = s & "    cmdImportFile.Top = 595" & vbCrLf
+    s = s & "    cmdImportFile.Top = 638" & vbCrLf
     s = s & "    cmdImportFile.Width = 95" & vbCrLf
     s = s & "    cmdImportFile.Height = 24" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    cmdImportUrl.Left = 322" & vbCrLf
-    s = s & "    cmdImportUrl.Top = 595" & vbCrLf
+    s = s & "    cmdImportUrl.Top = 638" & vbCrLf
     s = s & "    cmdImportUrl.Width = 95" & vbCrLf
     s = s & "    cmdImportUrl.Height = 24" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    cmdExport.Left = 424" & vbCrLf
-    s = s & "    cmdExport.Top = 595" & vbCrLf
+    s = s & "    cmdExport.Top = 638" & vbCrLf
     s = s & "    cmdExport.Width = 95" & vbCrLf
     s = s & "    cmdExport.Height = 24" & vbCrLf
     s = s & "    On Error GoTo 0" & vbCrLf
@@ -1558,10 +1613,10 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "    txtResult.Left = 220" & vbCrLf
     s = s & "    txtResult.Top = 534" & vbCrLf
     s = s & "    txtResult.Width = 690" & vbCrLf
-    s = s & "    txtResult.Height = 48" & vbCrLf
+    s = s & "    txtResult.Height = 86" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    lblStatus.Left = 12" & vbCrLf
-    s = s & "    lblStatus.Top = 610" & vbCrLf
+    s = s & "    lblStatus.Top = 676" & vbCrLf
     s = s & "    lblStatus.Width = 960" & vbCrLf
     s = s & "    lblStatus.Height = 18" & vbCrLf
     s = s & "" & vbCrLf
@@ -1573,8 +1628,14 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "" & vbCrLf
     s = s & "    Me.lstNames.MultiSelect = 2" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    txtFormula.Font.Name = ""Consolas""" & vbCrLf
-    s = s & "    txtFormula.Font.Size = 10" & vbCrLf
+    s = s & "    SetFixedWidthFont lstNames" & vbCrLf
+    s = s & "    SetFixedWidthFont txtFilter" & vbCrLf
+    s = s & "    SetFixedWidthFont txtName" & vbCrLf
+    s = s & "    SetFixedWidthFont txtComment" & vbCrLf
+    s = s & "    SetFixedWidthFont txtFormula" & vbCrLf
+    s = s & "    SetFixedWidthFont txtTestFormula" & vbCrLf
+    s = s & "    SetFixedWidthFont txtResult" & vbCrLf
+    s = s & "" & vbCrLf
     s = s & "    txtFormula.MultiLine = True" & vbCrLf
     s = s & "    txtFormula.EnterKeyBehavior = True" & vbCrLf
     s = s & "    txtFormula.ScrollBars = fmScrollBarsBoth" & vbCrLf
@@ -1584,26 +1645,70 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "    txtComment.ScrollBars = fmScrollBarsVertical" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    txtResult.Locked = True" & vbCrLf
+    s = s & "    txtResult.WordWrap = False" & vbCrLf
+    s = s & "    txtResult.ScrollBars = fmScrollBarsBoth" & vbCrLf
     s = s & "" & vbCrLf
+    s = s & "    On Error GoTo 0" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub SetFixedWidthFont(ByVal ctl As Object)" & vbCrLf
+    s = s & "    On Error Resume Next" & vbCrLf
+    s = s & "    ctl.Font.Name = ""Consolas""" & vbCrLf
+    s = s & "    ctl.Font.Size = 10" & vbCrLf
     s = s & "    On Error GoTo 0" & vbCrLf
     s = s & "End Sub" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Private Sub RefreshList()" & vbCrLf
     s = s & "    Dim names As Collection" & vbCrLf
     s = s & "    Dim x As Variant" & vbCrLf
+    s = s & "    Dim re As Object" & vbCrLf
+    s = s & "    Dim filterText As String" & vbCrLf
+    s = s & "    Dim useFilter As Boolean" & vbCrLf
+    s = s & "    Dim totalCount As Long" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    On Error GoTo FilterError" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    mLoading = True" & vbCrLf
     s = s & "    lstNames.Clear" & vbCrLf
     s = s & "" & vbCrLf
+    s = s & "    filterText = Trim$(txtFilter.Text)" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If Len(filterText) > 0 Then" & vbCrLf
+    s = s & "        Set re = CreateObject(""VBScript.RegExp"")" & vbCrLf
+    s = s & "        re.Pattern = filterText" & vbCrLf
+    s = s & "        re.IgnoreCase = True" & vbCrLf
+    s = s & "        re.Global = False" & vbCrLf
+    s = s & "        useFilter = True" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
     s = s & "    Set names = GetLambdaNames(ActiveWorkbook)" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    For Each x In names" & vbCrLf
-    s = s & "        lstNames.AddItem CStr(x)" & vbCrLf
+    s = s & "        totalCount = totalCount + 1" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "        If Not useFilter Then" & vbCrLf
+    s = s & "            lstNames.AddItem CStr(x)" & vbCrLf
+    s = s & "        ElseIf re.Test(CStr(x)) Then" & vbCrLf
+    s = s & "            lstNames.AddItem CStr(x)" & vbCrLf
+    s = s & "        End If" & vbCrLf
     s = s & "    Next x" & vbCrLf
     s = s & "" & vbCrLf
-    s = s & "    lblStatus.Caption = CStr(lstNames.ListCount) & "" LAMBDA function(s) found.""" & vbCrLf
+    s = s & "    On Error GoTo 0" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    If useFilter Then" & vbCrLf
+    s = s & "        lblStatus.Caption = CStr(lstNames.ListCount) & "" of "" & CStr(totalCount) & "" LAMBDA function(s) shown.""" & vbCrLf
+    s = s & "    Else" & vbCrLf
+    s = s & "        lblStatus.Caption = CStr(lstNames.ListCount) & "" LAMBDA function(s) found.""" & vbCrLf
+    s = s & "    End If" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    mLoading = False" & vbCrLf
+    s = s & "    Exit Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "FilterError:" & vbCrLf
+    s = s & "    lblStatus.Caption = ""Invalid regex filter: "" & Err.Description" & vbCrLf
     s = s & "    mLoading = False" & vbCrLf
     s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Private Sub ClearEditor()" & vbCrLf
     s = s & "    mLoading = True" & vbCrLf
@@ -1656,6 +1761,11 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "" & vbCrLf
     s = s & "    mDirty = True" & vbCrLf
     s = s & "    lblStatus.Caption = ""Unsaved changes""" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "Private Sub txtFilter_Change()" & vbCrLf
+    s = s & "    If mLoading Then Exit Sub" & vbCrLf
+    s = s & "    RefreshList" & vbCrLf
     s = s & "End Sub" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "Private Sub lstNames_Click()" & vbCrLf

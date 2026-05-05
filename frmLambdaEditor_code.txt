@@ -42,7 +42,7 @@ Private Sub EnsureEditorSize()
     On Error Resume Next
 
     Me.Width = 1020
-    Me.Height = 660
+    Me.Height = 710
 
     ' InsideWidth and InsideHeight are read-only at runtime in some Excel/VBA builds.
     ' Instead, set the outer form size and explicitly place every control.
@@ -58,16 +58,27 @@ Private Sub LayoutControls()
     lblAppTitle.Top = 8
     lblAppTitle.Width = 220
     lblAppTitle.Height = 18
+    lblAppTitle.Font.Bold = True
+
+    lblFilter.Left = 12
+    lblFilter.Top = 34
+    lblFilter.Width = 80
+    lblFilter.Height = 18
+
+    txtFilter.Left = 12
+    txtFilter.Top = 54
+    txtFilter.Width = 190
+    txtFilter.Height = 22
 
     lblFunctions.Left = 12
-    lblFunctions.Top = 34
+    lblFunctions.Top = 84
     lblFunctions.Width = 120
     lblFunctions.Height = 18
 
     lstNames.Left = 12
-    lstNames.Top = 54
+    lstNames.Top = 104
     lstNames.Width = 190
-    lstNames.Height = 474
+    lstNames.Height = 424
     Me.lstNames.MultiSelect = 2
 
     lblName.Left = 220
@@ -157,17 +168,17 @@ Private Sub LayoutControls()
     cmdVisualize.Height = 24
 
     cmdImportFile.Left = 220
-    cmdImportFile.Top = 595
+    cmdImportFile.Top = 638
     cmdImportFile.Width = 95
     cmdImportFile.Height = 24
 
     cmdImportUrl.Left = 322
-    cmdImportUrl.Top = 595
+    cmdImportUrl.Top = 638
     cmdImportUrl.Width = 95
     cmdImportUrl.Height = 24
 
     cmdExport.Left = 424
-    cmdExport.Top = 595
+    cmdExport.Top = 638
     cmdExport.Width = 95
     cmdExport.Height = 24
     On Error GoTo 0
@@ -180,10 +191,10 @@ Private Sub LayoutControls()
     txtResult.Left = 220
     txtResult.Top = 534
     txtResult.Width = 690
-    txtResult.Height = 48
+    txtResult.Height = 86
 
     lblStatus.Left = 12
-    lblStatus.Top = 610
+    lblStatus.Top = 676
     lblStatus.Width = 960
     lblStatus.Height = 18
 
@@ -195,8 +206,14 @@ Private Sub ConfigureEditor()
 
     Me.lstNames.MultiSelect = 2
 
-    txtFormula.Font.Name = "Consolas"
-    txtFormula.Font.Size = 10
+    SetFixedWidthFont lstNames
+    SetFixedWidthFont txtFilter
+    SetFixedWidthFont txtName
+    SetFixedWidthFont txtComment
+    SetFixedWidthFont txtFormula
+    SetFixedWidthFont txtTestFormula
+    SetFixedWidthFont txtResult
+
     txtFormula.MultiLine = True
     txtFormula.EnterKeyBehavior = True
     txtFormula.ScrollBars = fmScrollBarsBoth
@@ -206,26 +223,70 @@ Private Sub ConfigureEditor()
     txtComment.ScrollBars = fmScrollBarsVertical
 
     txtResult.Locked = True
+    txtResult.WordWrap = False
+    txtResult.ScrollBars = fmScrollBarsBoth
 
+    On Error GoTo 0
+End Sub
+
+Private Sub SetFixedWidthFont(ByVal ctl As Object)
+    On Error Resume Next
+    ctl.Font.Name = "Consolas"
+    ctl.Font.Size = 10
     On Error GoTo 0
 End Sub
 
 Private Sub RefreshList()
     Dim names As Collection
     Dim x As Variant
+    Dim re As Object
+    Dim filterText As String
+    Dim useFilter As Boolean
+    Dim totalCount As Long
+
+    On Error GoTo FilterError
 
     mLoading = True
     lstNames.Clear
 
+    filterText = Trim$(txtFilter.Text)
+
+    If Len(filterText) > 0 Then
+        Set re = CreateObject("VBScript.RegExp")
+        re.Pattern = filterText
+        re.IgnoreCase = True
+        re.Global = False
+        useFilter = True
+    End If
+
     Set names = GetLambdaNames(ActiveWorkbook)
 
     For Each x In names
-        lstNames.AddItem CStr(x)
+        totalCount = totalCount + 1
+
+        If Not useFilter Then
+            lstNames.AddItem CStr(x)
+        ElseIf re.Test(CStr(x)) Then
+            lstNames.AddItem CStr(x)
+        End If
     Next x
 
-    lblStatus.Caption = CStr(lstNames.ListCount) & " LAMBDA function(s) found."
+    On Error GoTo 0
+
+    If useFilter Then
+        lblStatus.Caption = CStr(lstNames.ListCount) & " of " & CStr(totalCount) & " LAMBDA function(s) shown."
+    Else
+        lblStatus.Caption = CStr(lstNames.ListCount) & " LAMBDA function(s) found."
+    End If
+
+    mLoading = False
+    Exit Sub
+
+FilterError:
+    lblStatus.Caption = "Invalid regex filter: " & Err.Description
     mLoading = False
 End Sub
+
 
 Private Sub ClearEditor()
     mLoading = True
@@ -278,6 +339,11 @@ Private Sub MarkDirty()
 
     mDirty = True
     lblStatus.Caption = "Unsaved changes"
+End Sub
+
+Private Sub txtFilter_Change()
+    If mLoading Then Exit Sub
+    RefreshList
 End Sub
 
 Private Sub lstNames_Click()

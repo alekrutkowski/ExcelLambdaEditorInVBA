@@ -287,7 +287,7 @@ Private Function Array1DToText(ByVal v As Variant) As String
         cells(i) = ValueToText(v(i))
     Next i
 
-    Array1DToText = Join(cells, vbTab)
+    Array1DToText = Join(cells, "  ")
 End Function
 
 Private Function Array2DToText(ByVal v As Variant) As String
@@ -299,11 +299,22 @@ Private Function Array2DToText(ByVal v As Variant) As String
     Dim c2 As Long
     Dim lines() As String
     Dim cells() As String
+    Dim widths() As Long
+    Dim textValue As String
 
     r1 = LBound(v, 1)
     r2 = UBound(v, 1)
     c1 = LBound(v, 2)
     c2 = UBound(v, 2)
+
+    ReDim widths(c1 To c2)
+
+    For r = r1 To r2
+        For c = c1 To c2
+            textValue = ValueToText(v(r, c))
+            If Len(textValue) > widths(c) Then widths(c) = Len(textValue)
+        Next c
+    Next r
 
     ReDim lines(r1 To r2)
 
@@ -311,13 +322,27 @@ Private Function Array2DToText(ByVal v As Variant) As String
         ReDim cells(c1 To c2)
 
         For c = c1 To c2
-            cells(c) = ValueToText(v(r, c))
+            textValue = ValueToText(v(r, c))
+
+            If c < c2 Then
+                cells(c) = PadRightText(textValue, widths(c)) & "  "
+            Else
+                cells(c) = textValue
+            End If
         Next c
 
-        lines(r) = Join(cells, vbTab)
+        lines(r) = Join(cells, vbNullString)
     Next r
 
     Array2DToText = Join(lines, vbCrLf)
+End Function
+
+Private Function PadRightText(ByVal s As String, ByVal width As Long) As String
+    If Len(s) >= width Then
+        PadRightText = s
+    Else
+        PadRightText = s & Space$(width - Len(s))
+    End If
 End Function
 
 Public Function FormatLambdaFormula(ByVal s As String) As String
