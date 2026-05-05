@@ -14,7 +14,7 @@ See https://www.xlwings.org/blog/excel-lambda-functions for the discussion of th
 3. Run `ShowLambdaEditor` macro any time you want to manage or edit your lambdas. I suggest you add this macro to your "Quick Access Toolbar" (see [this](https://support.microsoft.com/en-gb/office/assign-a-macro-to-a-button-728c83ec-61d0-40bd-b6ba-927f84eb5d2c) for instructions).
 
 You should be able to see and use something like:
-<img width="2530" height="1765" alt="image" src="https://github.com/user-attachments/assets/a5245633-fe4b-4a63-8bfa-941a505fe507" />
+<img width="2530" height="1815" alt="image" src="https://github.com/user-attachments/assets/b80e6dc9-c4b4-4d0e-a58d-a393812c0e8a" />
 
 # Notes
 
