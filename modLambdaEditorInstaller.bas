@@ -77,18 +77,18 @@ Private Function BuildLambdaEditorForm(ByVal vbProj As Object) As String
     mInstallStep = "Setting UserForm size and caption"
     SafeSet frm, "Caption", " "
     SafeSet frm, "Width", 1020
-    SafeSet frm, "Height", 710
+    SafeSet frm, "Height", 730
     SafeSet frm, "InsideWidth", 880
     SafeSet frm, "InsideHeight", 585
     SafeSetCompProperty comp, "Width", 1020
-    SafeSetCompProperty comp, "Height", 710
+    SafeSetCompProperty comp, "Height", 730
 
     mInstallStep = "Adding labels and function list"
     AddLabel frm, "lblAppTitle", "LAMBDA Function Editor", 12, 8, 220, 18
     AddLabel frm, "lblFilter", "Filter regex", 12, 34, 80, 18
     AddTextBox frm, "txtFilter", 12, 54, 190, 22, False, False
     AddLabel frm, "lblFunctions", "Functions", 12, 84, 120, 18
-    AddListBox frm, "lstNames", 12, 104, 190, 424
+    AddListBox frm, "lstNames", 12, 104, 190, 548
 
     mInstallStep = "Adding name field and top buttons"
     AddLabel frm, "lblName", "Name", 220, 8, 80, 18
@@ -120,7 +120,7 @@ Private Function BuildLambdaEditorForm(ByVal vbProj As Object) As String
     AddLabel frm, "lblResult", "Result", 220, 514, 100, 18
     Set txtResultCtl = AddTextBox(frm, "txtResult", 220, 534, 690, 86, True, True)
 
-    AddLabel frm, "lblStatus", "", 12, 676, 960, 18
+    AddLabel frm, "lblStatus", "", 12, 668, 960, 18
 
     AddButton frm, "cmdImportFile", "Import file", 220, 638, 95, 24
     AddButton frm, "cmdImportUrl", "Import URL", 322, 638, 95, 24
@@ -1464,7 +1464,7 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "    On Error Resume Next" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    Me.Width = 1020" & vbCrLf
-    s = s & "    Me.Height = 710" & vbCrLf
+    s = s & "    Me.Height = 730" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    ' InsideWidth and InsideHeight are read-only at runtime in some Excel/VBA builds." & vbCrLf
     s = s & "    ' Instead, set the outer form size and explicitly place every control." & vbCrLf
@@ -1500,7 +1500,7 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "    lstNames.Left = 12" & vbCrLf
     s = s & "    lstNames.Top = 104" & vbCrLf
     s = s & "    lstNames.Width = 190" & vbCrLf
-    s = s & "    lstNames.Height = 424" & vbCrLf
+    s = s & "    lstNames.Height = 548" & vbCrLf
     s = s & "    Me.lstNames.MultiSelect = 2" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    lblName.Left = 220" & vbCrLf
@@ -1616,7 +1616,7 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "    txtResult.Height = 86" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    lblStatus.Left = 12" & vbCrLf
-    s = s & "    lblStatus.Top = 676" & vbCrLf
+    s = s & "    lblStatus.Top = 668" & vbCrLf
     s = s & "    lblStatus.Width = 960" & vbCrLf
     s = s & "    lblStatus.Height = 18" & vbCrLf
     s = s & "" & vbCrLf

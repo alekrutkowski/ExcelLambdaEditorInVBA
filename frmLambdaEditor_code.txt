@@ -42,7 +42,7 @@ Private Sub EnsureEditorSize()
     On Error Resume Next
 
     Me.Width = 1020
-    Me.Height = 710
+    Me.Height = 730
 
     ' InsideWidth and InsideHeight are read-only at runtime in some Excel/VBA builds.
     ' Instead, set the outer form size and explicitly place every control.
@@ -78,7 +78,7 @@ Private Sub LayoutControls()
     lstNames.Left = 12
     lstNames.Top = 104
     lstNames.Width = 190
-    lstNames.Height = 424
+    lstNames.Height = 548
     Me.lstNames.MultiSelect = 2
 
     lblName.Left = 220
@@ -194,7 +194,7 @@ Private Sub LayoutControls()
     txtResult.Height = 86
 
     lblStatus.Left = 12
-    lblStatus.Top = 676
+    lblStatus.Top = 668
     lblStatus.Width = 960
     lblStatus.Height = 18
 
