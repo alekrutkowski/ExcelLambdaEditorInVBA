@@ -8,10 +8,14 @@ See https://www.xlwings.org/blog/excel-lambda-functions for the discussion of th
 
 # Installation
 
-0. *Delete the previous `frmLambdaEditor`, `modLambdaEditor` and `modLambdaStore` VBA modules and `UserForm1` if they exist.*
-1. Download [`modLambdaEditorInstaller.bas`](https://github.com/alekrutkowski/ExcelLambdaEditorInVBA/releases/download/v0.0.1/modLambdaEditorInstaller.bas) and import it in Excel (see steps 1-4 from [here](https://support.tetcos.com/support/solutions/articles/14000143233-how-to-import-vba-script-bas-file-in-ms-excel-) if you don't know how to import).
-2. Run **once** `InstallLambdaEditor` macro (see [this](https://www.geeksforgeeks.org/excel/how-to-run-a-macro-in-excel/) if you don't know how to run Excel macros).
-3. Run `ShowLambdaEditor` macro any time you want to manage or edit your lambdas. I suggest you add this macro to your "Quick Access Toolbar" (see [this](https://support.microsoft.com/en-gb/office/assign-a-macro-to-a-button-728c83ec-61d0-40bd-b6ba-927f84eb5d2c) for instructions).
+0. **_Delete the previous_ `frmLambdaEditor`, `modLambdaEditor` _and_ `modLambdaStore` _VBA modules and `UserForm1` if they exist._**
+1. **Download [`modLambdaEditorInstaller.bas`](https://github.com/alekrutkowski/ExcelLambdaEditorInVBA/releases/download/v0.0.1/modLambdaEditorInstaller.bas) and import it in Excel** (see steps 1-4 from [here](https://support.tetcos.com/support/solutions/articles/14000143233-how-to-import-vba-script-bas-file-in-ms-excel-) if you don't know how to import). \
+I suggest that you import it into your [PERSONAL.xlsb file](https://support.microsoft.com/en-us/office/create-and-save-all-your-macros-in-a-single-workbook-66c97ab3-11c2-44db-b021-ae005a9bc790) (which is normaly automatically opened any time you open Excel) so that you can use this LAMBA Function Editor when working with any Excel file. PERSONAL.xlsb is usually saved at `C:\Users\YOUR-USER-NAME\AppData\Roaming\Microsoft\Excel\XLSTART`.
+3. **Run _once_ `InstallLambdaEditor` macro** (see [this](https://www.geeksforgeeks.org/excel/how-to-run-a-macro-in-excel/) if you don't know how to run Excel macros).
+
+# Usage
+
+**Run `ShowLambdaEditor` macro** any time you want to manage or edit your lambdas. I suggest you add this macro to your "Quick Access Toolbar" (see [this](https://support.microsoft.com/en-gb/office/assign-a-macro-to-a-button-728c83ec-61d0-40bd-b6ba-927f84eb5d2c) for instructions).
 
 You should be able to see and use something like:
 <img width="2530" height="1815" alt="image" src="https://github.com/user-attachments/assets/b80e6dc9-c4b4-4d0e-a58d-a393812c0e8a" />
