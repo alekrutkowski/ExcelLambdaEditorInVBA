@@ -99,6 +99,7 @@ Private Function BuildLambdaEditorForm(ByVal vbProj As Object) As String
     AddButton frm, "cmdDelete", "Delete", 616, 26, 62, 24
     AddButton frm, "cmdRefresh", "Refresh", 684, 26, 70, 24
     AddButton frm, "cmdClose", "Close", 760, 26, 62, 24
+    AddLambdaIcon frm
 
     mInstallStep = "Adding comment field"
     AddLabel frm, "lblComment", "Comment", 220, 58, 100, 18
@@ -206,6 +207,23 @@ Private Sub AddLabel(ByVal frm As Object, ByVal controlName As String, ByVal cap
     Set c = AddControl(frm, "Forms.Label.1", controlName)
     SafeSet c, "Caption", captionText
     PlaceControl c, leftPos, topPos, widthVal, heightVal
+End Sub
+
+Private Sub AddLambdaIcon(ByVal frm As Object)
+    Dim c As Object
+
+    Set c = AddControl(frm, "Forms.Label.1", "lblLambdaIcon")
+    SafeSet c, "Caption", ChrW$(&H3BB)
+    SafeSet c, "BackStyle", 0
+    SafeSet c, "BorderStyle", 0
+    SafeSet c, "SpecialEffect", 0
+    SafeSet c, "TextAlign", 2
+    SafeSet c, "ControlTipText", "LAMBDA Function Editor"
+    SafeSet c.Font, "Name", "Segoe UI Symbol"
+    SafeSet c.Font, "Size", 34
+    SafeSet c.Font, "Bold", True
+    SafeSet c, "ForeColor", RGB(86, 65, 170)
+    PlaceControl c, 936, 8, 50, 50
 End Sub
 
 Private Function AddTextBox(ByVal frm As Object, ByVal controlName As String, ByVal leftPos As Single, ByVal topPos As Single, ByVal widthVal As Single, ByVal heightVal As Single, ByVal multilineVal As Boolean, ByVal wrapVal As Boolean) As Object
@@ -1537,6 +1555,20 @@ Private Function Code_frmLambdaEditor() As String
     s = s & "    cmdClose.Top = 26" & vbCrLf
     s = s & "    cmdClose.Width = 62" & vbCrLf
     s = s & "    cmdClose.Height = 24" & vbCrLf
+    s = s & "" & vbCrLf
+    s = s & "    lblLambdaIcon.Left = 936" & vbCrLf
+    s = s & "    lblLambdaIcon.Top = 8" & vbCrLf
+    s = s & "    lblLambdaIcon.Width = 50" & vbCrLf
+    s = s & "    lblLambdaIcon.Height = 50" & vbCrLf
+    s = s & "    lblLambdaIcon.Caption = ChrW$(&H3BB)" & vbCrLf
+    s = s & "    lblLambdaIcon.BackStyle = 0" & vbCrLf
+    s = s & "    lblLambdaIcon.BorderStyle = 0" & vbCrLf
+    s = s & "    lblLambdaIcon.SpecialEffect = 0" & vbCrLf
+    s = s & "    lblLambdaIcon.TextAlign = 2" & vbCrLf
+    s = s & "    lblLambdaIcon.Font.Name = ""Segoe UI Symbol""" & vbCrLf
+    s = s & "    lblLambdaIcon.Font.Size = 34" & vbCrLf
+    s = s & "    lblLambdaIcon.Font.Bold = True" & vbCrLf
+    s = s & "    lblLambdaIcon.ForeColor = RGB(86, 65, 170)" & vbCrLf
     s = s & "" & vbCrLf
     s = s & "    lblComment.Left = 220" & vbCrLf
     s = s & "    lblComment.Top = 58" & vbCrLf

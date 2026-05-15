@@ -116,6 +116,20 @@ Private Sub LayoutControls()
     cmdClose.Width = 62
     cmdClose.Height = 24
 
+    lblLambdaIcon.Left = 936
+    lblLambdaIcon.Top = 8
+    lblLambdaIcon.Width = 50
+    lblLambdaIcon.Height = 50
+    lblLambdaIcon.Caption = ChrW$(&H3BB)
+    lblLambdaIcon.BackStyle = 0
+    lblLambdaIcon.BorderStyle = 0
+    lblLambdaIcon.SpecialEffect = 0
+    lblLambdaIcon.TextAlign = 2
+    lblLambdaIcon.Font.Name = "Segoe UI Symbol"
+    lblLambdaIcon.Font.Size = 34
+    lblLambdaIcon.Font.Bold = True
+    lblLambdaIcon.ForeColor = RGB(86, 65, 170)
+
     lblComment.Left = 220
     lblComment.Top = 58
     lblComment.Width = 100
